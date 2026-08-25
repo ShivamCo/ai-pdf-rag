@@ -26,7 +26,7 @@ export default function FileUpload() {
                         try {
 
                             const response = await axios.post(
-                                api_url+'/upload/pdf', formData
+                                api_url+'/api/upload-document', formData
                              )
                              
                         } catch(error){

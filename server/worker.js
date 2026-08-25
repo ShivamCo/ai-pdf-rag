@@ -197,7 +197,7 @@ const worker = new Worker(
       // --------------------------------------------------
 
       const qdrantUrl =
-        process.env.QDRANT_URL;
+        process.env.QDRANT_URL_LOCAL;
 
       const qdrantApiKey =
         process.env.QDRANT_API_KEY;
@@ -226,9 +226,6 @@ const worker = new Worker(
         {
           url: qdrantUrl,
 
-          ...(qdrantApiKey
-            ? { apiKey: qdrantApiKey }
-            : {}),
 
           collectionName:
             'ai-pdf-documents',

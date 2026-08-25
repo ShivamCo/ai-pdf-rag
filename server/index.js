@@ -6,19 +6,26 @@ import { Queue } from 'bullmq';
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { GoogleGenAI } from '@google/genai';
+import bodyParser from 'body-parser';
 
 dotenv.config();
 const app = express();
+app.use(bodyParser.json())
 
 const port = process.env.PORT_DEV || 5000;
 const origin_dev = process.env.ORIGIN_DEV;
 const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
+const corsOptions = {
+    
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+};
+
 app.use(
-  cors({
-    origin: origin_dev,
-  })
+  cors( origin_dev )
 );
 
 app.get('/', (req, res) => {
@@ -44,12 +51,13 @@ const queues = new Queue('pdf-upload-queue', {
   },
 });
 
-app.get('/chat', async (req, res) => {
+app.post('/api/chat', async (req, res) => {
   const googleApiKey = process.env.GOOGLE_API_KEY;
   const qdrantUrl = process.env.QDRANT_URL;
   const qdrantApiKey = process.env.QDRANT_API_KEY;
 
-  const user_query = 'how youtube help education';
+  const user_query =  req.body.question;
+  
 
   const embeddings = new GoogleGenerativeAIEmbeddings({
     apiKey: googleApiKey,
@@ -75,8 +83,6 @@ app.get('/chat', async (req, res) => {
   });
 
   const result = await retriever.invoke(user_query);
-
-  
 
   const context = result.map((doc) => doc.pageContent).join('\n\n');
 
@@ -104,18 +110,12 @@ ${JSON.stringify(context)}
       contents: SYSTEM_PROMPT,
     });
 
-    console.log({message: response.text, docs: result })
+    console.log({ message: response.text, docs: result });
 
-    
-    
-    return res.json( {message: response.text, docs: result });
+    return res.json({ message: response.text, docs: result });
   }
 
   main();
-
-  
-
-  
 });
 
 app.post('/upload/pdf', upload.single('pdf'), async (req, res) => {
@@ -137,6 +137,11 @@ app.post('/upload/pdf', upload.single('pdf'), async (req, res) => {
     return res.status(500).json({ error: 'Failed to queue file upload' });
   }
 });
+
+app.post("/test", async(req,res) =>{
+  console.log(req.body)
+  res.json({"test":"test"})
+})
 
 app.listen(port, () => {
   console.log(`Server is Live on ${port}`);
