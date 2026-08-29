@@ -1,21 +1,6 @@
-import { queue } from "../config/qdrant";
-import { Worker } from "bullmq";
+import { Queue } from 'bullmq';
+import { redisConfig } from '../config/redis.js';
 
-
-const worker = new Worker(
-    'pdf-upload-queue',
-
-    async (job) =>{
-        try {
-
-
-
-            
-        } catch (err){
-            
-        }
-    }
-
-)
-
-export {worker}
+export const pdfUploadQueue = new Queue('pdf-upload-queue', {
+  connection: redisConfig,
+});

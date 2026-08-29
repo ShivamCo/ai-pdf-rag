@@ -2,12 +2,14 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/server.js",
   "scripts": {
-    "dev": "nodemon index.js ",
-    "dev:worker": "node --watch worker.js",
+    "dev": "nodemon src/server.js",
+    "dev:worker": "node --watch src/jobs/pdfWorker.js",
+    "worker": "node src/jobs/pdfWorker.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
+    "start": "node src/server.js",
+    "postinstall": "prisma generate",
     "format:check": "prettier --check .",
     "format:fix": "prettier --write ."
   },
@@ -17,6 +19,7 @@
   "type": "module",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1117.0",
+    "@clerk/express": "^2.1.63",
     "@google/genai": "^2.17.1",
     "@google/generative-ai": "^0.24.1",
     "@langchain/community": "^1.1.29",
@@ -24,6 +27,7 @@
     "@langchain/google-genai": "^2.2.0",
     "@langchain/qdrant": "^1.0.3",
     "@langchain/textsplitters": "^1.0.1",
+    "@prisma/client": "^6.4.1",
     "bullmq": "^6.1.2",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -34,7 +38,8 @@
     "pdf-parse": "^2.4.5"
   },
   "devDependencies": {
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "prisma": "^6.4.1"
   },
   "overrides": {
     "@browserbasehq/stagehand": {

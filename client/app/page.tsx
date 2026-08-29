@@ -1,20 +1,21 @@
-import Image from "next/image";
-import FileUpload from "./component/fileUpload";
-import AIChat from "./component/chatComponent";
+"use client";
 
+import { Show } from "@clerk/nextjs";
+import LandingPage from "./component/LandingPage";
+import AIChat from "./component/chatComponent";
 
 export default function Home() {
   return (
-    <div>
-      <div className=" min-w-screen flex  min-h-screen to-gray-950 " >
-        <section className=" w-[40vw] flex items-center justify-center border-r-red-500 border-r-2 " >
-          <FileUpload/>
-        </section>
+    <>
+      <Show when="signed-out">
+        <LandingPage />
+      </Show>
 
-        <section className=" w-[60vw] flex justify-center " >
-          <AIChat />
-        </section>
-      </div>
-    </div>
+      <Show when="signed-in">
+        <AIChat />
+      </Show>
+    </>
   );
 }
+
+

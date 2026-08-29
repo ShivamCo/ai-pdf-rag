@@ -1,0 +1,39 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Document {
+  id           String        @id @default(uuid())
+  userId       String        // Clerk User ID (e.g. user_2xxx)
+  filename     String
+  originalName String
+  r2Key        String?
+  status       String        @default("PROCESSING") // PROCESSING, COMPLETED, FAILED
+  pageCount    Int           @default(0)
+  chunkCount   Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  chats        ChatMessage[]
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id         String   @id @default(uuid())
+  documentId String
+  userId     String   // Clerk User ID
+  role       String   // "user" | "assistant"
+  content    String   @db.Text
+  sources    Json?    // Array of source documents metadata
+  createdAt  DateTime @default(now())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([userId])
+}
