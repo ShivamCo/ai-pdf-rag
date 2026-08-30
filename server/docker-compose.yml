@@ -1,25 +1,78 @@
 services:
-  valkey:
-    image: valkey/valkey
+
+
+
+  api:
+
+    build: .
+
     ports:
-      - 6379:6379
+      - "5000:5000"
+
+    env_file:
+      - .env
+
+    depends_on:
+      - valkey
+      - postgres
+      - qdrant
+
+    command: npm start
+
+
+
+  worker:
+
+    build: .
+
+    env_file:
+      - .env
+
+    depends_on:
+      - valkey
+      - postgres
+      - qdrant
+
+    command: npm run worker
+
+
+
+  valkey:
+
+    image: valkey/valkey
+
+    ports:
+      - "6379:6379"
+
+
 
   qdrant:
+
     image: qdrant/qdrant
+
     ports:
-      - 6333:6333
+      - "6333:6333"
+
+
 
   postgres:
+
     image: postgres:16-alpine
-    restart: always
+
     environment:
+
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgrespassword
       POSTGRES_DB: aipdf
+
     ports:
-      - 5432:5432
+      - "5432:5432"
+
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+
+
 volumes:
+
   postgres_data:

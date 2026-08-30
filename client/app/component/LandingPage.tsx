@@ -98,7 +98,7 @@ export default function LandingPage() {
                 <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-100 px-1.5 py-0.2 rounded">Ready</span>
               </div>
             </div>
-            <span className="text-xs font-semibold text-slate-400">DocuMind AI Preview</span>
+            <span className="text-xs font-semibold text-slate-400">Docsy AI Preview</span>
           </div>
 
           {/* Mock Chat Body */}
@@ -285,7 +285,7 @@ export default function LandingPage() {
             <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-xs">
               <FileText className="h-3.5 w-3.5" />
             </div>
-            <span className="font-semibold text-slate-800">DocuMind AI RAG</span>
+            <span className="font-semibold text-slate-800">Docsy AI RAG</span>
             <span>&copy; {new Date().getFullYear()} All rights reserved.</span>
           </div>
           <p className="text-slate-400">

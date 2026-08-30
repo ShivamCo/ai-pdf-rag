@@ -9,6 +9,7 @@ import {
 import { Geist, Geist_Mono } from 'next/font/google';
 import { FileText, Sparkles, Zap, ShieldCheck } from 'lucide-react';
 import './globals.css';
+import Image from 'next/image';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -40,13 +41,13 @@ export default function RootLayout({
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
               {/* Brand Logo */}
               <a href="/" className="group flex items-center gap-2.5 transition">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 text-white shadow-md shadow-blue-500/20 transition group-hover:scale-105">
-                  <FileText className="h-5 w-5" />
+                <div className="flex h-18 w-18 items-center justify-center  text-white transition group-hover:scale-105">
+                  <Image src="/logo.png" alt="Docsy" width={500} height={500} />
                 </div>
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1.5">
                     <span className="text-base font-bold tracking-tight text-slate-900">
-                      Docu<span className="text-blue-600">Mind</span>
+                      {/* <span className="text-blue-600">Docsy</span> */}
                     </span>
                     <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
                       AI RAG
