@@ -1,0 +1,44 @@
+# --- Version Control ---
+.git
+.gitignore
+
+# --- Local Dependencies ---
+node_modules/
+venv/
+.venv/
+env/
+
+# --- Build & Output Directories ---
+dist/
+build/
+out/
+target/
+
+# --- Environment Secrets & Credentials ---
+.env
+.env.*
+*.pem
+*.key
+.aws/
+.gcloud/
+
+# --- IDEs and Text Editors ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
+
+# --- Testing & Logs ---
+coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Docker Files ---
+docker-compose.yml
+.dockerignore
