@@ -84,46 +84,62 @@ export default function AIChat() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5300";
 
-  /* ==========================================
-   * AUTO SCROLL
-   * ========================================== */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth",
     });
   }, [messages, isTyping]);
 
-  /* ==========================================
-   * FETCH USER DOCUMENTS
-   * ========================================== */
-  const fetchUserDocuments = useCallback(async () => {
-    try {
-      const token = await getToken();
-      if (!token && !userId) return;
+  const fetchUserDocuments = useCallback(
+    async (preferredDocId?: string) => {
+      try {
+        const token = await getToken();
+        if (!token && !userId) return;
 
-      const res = await axios.get(`${apiUrl}/api/user-documents`, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
-          ...(userId ? { "x-user-id": userId } : {}),
-        },
-      });
+        const res = await axios.get(`${apiUrl}/api/user-documents`, {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : undefined,
+            ...(userId ? { "x-user-id": userId } : {}),
+          },
+        });
 
-      const docs: UserDocument[] = res.data.data.documents || [];
-      setDocuments(docs);
-      setDocCount(res.data.data.count || docs.length);
+        const docs: UserDocument[] = res.data.data.documents || [];
+        setDocuments(docs);
+        setDocCount(res.data.data.count || docs.length);
 
-      // Auto-select first document if none selected
-      if (docs.length > 0 && !selectedDoc) {
-        setSelectedDoc(docs[0]);
+        setSelectedDoc((prev) => {
+          if (preferredDocId) {
+            const found = docs.find((d) => d.id === preferredDocId);
+            if (found) return found;
+          }
+          if (!prev && docs.length > 0) {
+            return docs[0];
+          }
+          if (prev) {
+            const updated = docs.find((d) => d.id === prev.id);
+            return updated || (docs.length > 0 ? docs[0] : null);
+          }
+          return null;
+        });
+      } catch (err) {
+        console.error("Failed to fetch user documents:", err);
       }
-    } catch (err) {
-      console.error("Failed to fetch user documents:", err);
-    }
-  }, [getToken, userId, apiUrl, selectedDoc]);
+    },
+    [getToken, userId, apiUrl]
+  );
 
-  /* ==========================================
-   * FETCH CHAT HISTORY FOR SELECTED DOC
-   * ========================================== */
+  // Poll for document status updates while any document is processing
+  useEffect(() => {
+    const hasProcessing = documents.some((doc) => doc.status === "PROCESSING");
+    if (!hasProcessing) return;
+
+    const interval = setInterval(() => {
+      fetchUserDocuments();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [documents, fetchUserDocuments]);
+
   const fetchChatHistory = useCallback(
     async (docId: string) => {
       try {
@@ -158,16 +174,13 @@ export default function AIChat() {
   }, [fetchUserDocuments]);
 
   useEffect(() => {
-    if (selectedDoc) {
+    if (selectedDoc?.id) {
       fetchChatHistory(selectedDoc.id);
     } else {
       setMessages([]);
     }
-  }, [selectedDoc, fetchChatHistory]);
+  }, [selectedDoc?.id, fetchChatHistory]);
 
-  /* ==========================================
-   * SEND MESSAGE
-   * ========================================== */
   const handleSendMessage = async (textToSend?: string): Promise<void> => {
     const query = (textToSend || input).trim();
     if (!query || isTyping || !selectedDoc) return;
@@ -208,11 +221,11 @@ export default function AIChat() {
 
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error("Chat API error:", error);
+      console.error("Chat error:", error);
       const errorMessage: Message = {
         id: Date.now() + 1,
         role: "assistant",
-        content: "Sorry, I couldn't process your question. Please try again or verify your document status.",
+        content: "Sorry, I couldn't process your question. Please try again.",
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -220,9 +233,6 @@ export default function AIChat() {
     }
   };
 
-  /* ==========================================
-   * DELETE DOCUMENT
-   * ========================================== */
   const handleDeleteDocument = async (docId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm("Are you sure you want to delete this PDF and its chat history?")) return;
@@ -275,12 +285,10 @@ export default function AIChat() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-slate-100">
-      {/* ======================================== */}
-      {/* LEFT SIDEBAR: DOCUMENTS & STORAGE */}
-      {/* ======================================== */}
+      {/* Sidebar */}
       <aside className="w-80 sm:w-88 shrink-0 border-r border-slate-200 bg-white flex flex-col justify-between shadow-xs">
         <div className="p-4 flex flex-col h-full overflow-hidden">
-          {/* Sidebar Top: Title & Quota */}
+          {/* Header & Quota */}
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
@@ -332,7 +340,7 @@ export default function AIChat() {
             <span>{docCount >= docLimit ? "Storage Limit Reached (5/5)" : "Upload New PDF"}</span>
           </button>
 
-          {/* Search Filter Bar */}
+          {/* Search Filter */}
           {documents.length > 0 && (
             <div className="relative mt-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
@@ -429,7 +437,7 @@ export default function AIChat() {
           </div>
         </div>
 
-        {/* User Card in Sidebar Footer */}
+        {/* User Card */}
         {user && (
           <div className="border-t border-slate-200 p-3.5 bg-slate-50/80 flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
@@ -445,11 +453,9 @@ export default function AIChat() {
         )}
       </aside>
 
-      {/* ======================================== */}
-      {/* MAIN CHAT WORKSPACE */}
-      {/* ======================================== */}
+      {/* Main Chat Workspace */}
       <main className="flex flex-1 flex-col bg-white overflow-hidden">
-        {/* Main Workspace Header */}
+        {/* Workspace Header */}
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 px-6 bg-white">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs">
@@ -486,7 +492,6 @@ export default function AIChat() {
         {/* Messages List / Empty State */}
         <div className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-6 bg-slate-50/40">
           {!selectedDoc ? (
-            /* Empty State: No document selected */
             <div className="flex h-full flex-col items-center justify-center text-center p-6 max-w-md mx-auto">
               <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-blue-50 text-blue-600 mb-4 shadow-sm">
                 <FileText size={32} />
@@ -505,7 +510,6 @@ export default function AIChat() {
               </button>
             </div>
           ) : messages.length === 0 ? (
-            /* Empty State: Document selected, but no chat yet */
             <div className="flex h-full flex-col items-center justify-center text-center p-6 max-w-xl mx-auto">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white mb-4 shadow-md shadow-blue-500/20">
                 <Sparkles size={26} />
@@ -533,7 +537,6 @@ export default function AIChat() {
               </div>
             </div>
           ) : (
-            /* Chat Messages */
             messages.map((message) => (
               <MessageItem
                 key={message.id}
@@ -582,9 +585,7 @@ export default function AIChat() {
         </div>
       </main>
 
-      {/* ======================================== */}
-      {/* UPLOAD MODAL POPUP */}
-      {/* ======================================== */}
+      {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-200">
@@ -610,9 +611,9 @@ export default function AIChat() {
 
             <div className="mt-6">
               <FileUpload
-                onUploadSuccess={() => {
+                onUploadSuccess={(newDocId) => {
                   setShowUploadModal(false);
-                  fetchUserDocuments();
+                  fetchUserDocuments(newDocId);
                 }}
               />
             </div>
@@ -622,10 +623,6 @@ export default function AIChat() {
     </div>
   );
 }
-
-/* ================================================= */
-/* MESSAGE ITEM COMPONENT */
-/* ================================================= */
 
 interface MessageItemProps {
   message: Message;

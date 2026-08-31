@@ -6,7 +6,7 @@ import axios from "axios";
 import { useAuth } from "@clerk/nextjs";
 
 interface FileUploadProps {
-  onUploadSuccess?: () => void;
+  onUploadSuccess?: (docId?: string) => void;
   disabled?: boolean;
 }
 
@@ -43,9 +43,7 @@ export default function FileUpload({ onUploadSuccess, disabled }: FileUploadProp
     try {
       const token = await getToken();
 
-      setUploadStep("Queueing background processing & vector embeddings...");
-
-      await axios.post(`${apiUrl}/api/upload-document`, formData, {
+      const response = await axios.post(`${apiUrl}/api/upload-document`, formData, {
         headers: {
           Authorization: token ? `Bearer ${token}` : undefined,
           ...(userId ? { "x-user-id": userId } : {}),
@@ -55,7 +53,7 @@ export default function FileUpload({ onUploadSuccess, disabled }: FileUploadProp
 
       setUploadStep("Completed!");
       if (onUploadSuccess) {
-        onUploadSuccess();
+        onUploadSuccess(response.data?.data?.document?.id);
       }
     } catch (error: any) {
       console.error("Upload error:", error);
