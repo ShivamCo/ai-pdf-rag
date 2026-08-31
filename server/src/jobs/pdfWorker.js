@@ -1,3 +1,5 @@
+import http from 'http';
+import { fileURLToPath } from 'url';
 import { Worker } from 'bullmq';
 import { redisConfig } from '../config/redis.js';
 import { processPdfAndStore } from '../services/pdf.service.js';
@@ -47,3 +49,18 @@ export const startPdfWorker = () => {
 };
 
 startPdfWorker();
+
+// Cloud Run requires a listening HTTP server on process.env.PORT (default 8080) for health checks.
+// Only start the health check server if this file is run directly (standalone worker).
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const PORT = process.env.PORT || 8080;
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', service: 'pdf-worker' }));
+  });
+
+  server.listen(PORT, () => {
+    console.log(`Worker health check server listening on port ${PORT}`);
+  });
+}
+

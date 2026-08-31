@@ -38,7 +38,7 @@ export default function FileUpload({ onUploadSuccess, disabled }: FileUploadProp
 
     const formData = new FormData();
     formData.append("pdf", file);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5300";
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL_PDF || "http://localhost:5300";
 
     try {
       const token = await getToken();

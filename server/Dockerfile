@@ -19,7 +19,7 @@ RUN npx prisma generate
 COPY . .
 
 # Expose API port
-# EXPOSE 5000
+EXPOSE 8080
 
 # Default command
 CMD ["npm", "start"]
