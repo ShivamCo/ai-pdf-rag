@@ -14,7 +14,8 @@ export const startPdfWorker = () => {
       'pdf-upload-queue',
       async (job) => {
         const rawData = job.data;
-        const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+        const data =
+          typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
 
         if (!data?.r2Key && !data?.path) {
           throw new Error('Invalid job payload: missing r2Key or file path');
@@ -62,5 +63,3 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log(`Worker listening on port ${PORT}`);
   });
 }
-
-

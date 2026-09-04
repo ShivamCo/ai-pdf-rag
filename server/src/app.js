@@ -55,4 +55,3 @@ app.use('/', apiRouter);
 app.use(errorHandler);
 
 export default app;
-

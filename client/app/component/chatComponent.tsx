@@ -122,7 +122,8 @@ export default function AIChat() {
 
   const apiUrl =
     process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:5300";
+    process.env.NEXT_PUBLIC_API_URL_PDF ||
+    "http://localhost:8080";
 
   /*
    * ---------------------------------------------------------
@@ -446,13 +447,14 @@ export default function AIChat() {
         ...prev,
         aiMessage,
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat error:", error);
 
       const errorMessage: Message = {
         id: Date.now() + 1,
         role: "assistant",
         content:
+          error?.response?.data?.message ||
           "Sorry, I couldn't process your question. Please try again.",
       };
 

@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { getGoogleEmbeddingsClient } from '../config/ai.js';
@@ -16,11 +17,13 @@ export const processPdfAndStore = async ({
   }
 
   let loader;
-  if (r2Key) {
+  if (filePath && fs.existsSync(filePath)) {
+    loader = new PDFLoader(filePath);
+  } else if (r2Key) {
     const pdfBuffer = await downloadFromR2(r2Key);
     const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
     loader = new PDFLoader(pdfBlob);
-  } else {
+  } else if (filePath) {
     loader = new PDFLoader(filePath);
   }
 
@@ -96,4 +99,3 @@ export const processPdfAndStore = async ({
     }
   }
 };
-

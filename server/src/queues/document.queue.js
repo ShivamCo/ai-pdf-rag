@@ -28,28 +28,29 @@ export const dispatchPdfProcessing = async (jobPayload) => {
       const job = await Promise.race([jobPromise, timeoutPromise]);
       return { id: job.id, method: 'queue' };
     } catch (err) {
-      console.warn('Queue failed, falling back to in-process worker:', err.message);
+      console.warn(
+        'Queue failed, falling back to in-process worker:',
+        err.message
+      );
     }
   }
 
-  // Fallback to background async execution when Redis isn't running
-  const mockJobId = `async-${Date.now()}`;
-  setImmediate(async () => {
-    try {
-      await processPdfAndStore({
-        documentId: jobPayload.documentId,
-        userId: jobPayload.userId,
-        r2Key: jobPayload.r2Key,
-        path: jobPayload.path,
-      });
-    } catch (error) {
-      console.error(`Background processing failed for doc ${jobPayload.documentId}:`, error.message);
-    }
-  });
-
-  return { id: mockJobId, method: 'async' };
+  // Fallback to direct execution when Redis queue is not configured or failed
+  try {
+    const result = await processPdfAndStore({
+      documentId: jobPayload.documentId,
+      userId: jobPayload.userId,
+      r2Key: jobPayload.r2Key,
+      path: jobPayload.path,
+    });
+    return { id: `direct-${Date.now()}`, method: 'direct', ...result };
+  } catch (error) {
+    console.error(
+      `Processing failed for doc ${jobPayload.documentId}:`,
+      error.message
+    );
+    throw error;
+  }
 };
 
 export { pdfUploadQueue };
-
-

@@ -50,4 +50,3 @@ export const requireAuthentication = (req, res, next) => {
 
   next();
 };
-

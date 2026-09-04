@@ -47,6 +47,7 @@ export const uploadDocument = asyncHandler(async (req, res) => {
     documentId: document.id,
     userId,
     filename: req.file.originalname,
+    path: req.file.path,
   };
 
   if (isR2Configured()) {
@@ -55,24 +56,25 @@ export const uploadDocument = asyncHandler(async (req, res) => {
       req.file.filename,
       req.file.mimetype
     );
-    await deleteLocalFile(req.file.path);
     jobPayload.r2Key = r2Result.key;
 
     await prisma.document.update({
       where: { id: document.id },
       data: { r2Key: r2Result.key },
     });
-  } else {
-    jobPayload.path = req.file.path;
   }
 
   const job = await dispatchPdfProcessing(jobPayload);
+
+  const finalDocument = await prisma.document.findUnique({
+    where: { id: document.id },
+  });
 
   return res.status(200).json(
     new ApiResponse(
       200,
       {
-        document,
+        document: finalDocument || document,
         jobId: job.id,
         userDocCount: userDocCount + 1,
         limit: MAX_PDF_LIMIT,
@@ -139,4 +141,3 @@ export const deleteDocument = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, null, 'Document deleted successfully'));
 });
-
