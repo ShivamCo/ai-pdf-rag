@@ -9,6 +9,7 @@
     "worker": "node src/jobs/pdfWorker.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
+    "deploy": "gcloud builds submit . --tag asia-south1-docker.pkg.dev/ai-pdf-506012/my-app-repo/ai-pdf-server:latest --project=ai-pdf-506012 && gcloud run deploy ai-pdf-server --image=asia-south1-docker.pkg.dev/ai-pdf-506012/my-app-repo/ai-pdf-server:latest --region=asia-south1 --project=ai-pdf-506012 --allow-unauthenticated",
     "postinstall": "prisma generate",
     "format:check": "prettier --check .",
     "format:fix": "prettier --write ."

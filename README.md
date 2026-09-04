@@ -1,4 +1,4 @@
-# 📄 Docsy AI — Intelligent PDF Chat & RAG Platform
+# Docsy AI — Intelligent PDF Chat & RAG Platform
 
 <div align="center">
 
@@ -8,112 +8,108 @@
 ![Qdrant](https://img.shields.io/badge/Qdrant%20Vector%20DB-DC2626?style=for-the-badge&logo=qdrant&logoColor=white)
 ![Cloudflare R2](https://img.shields.io/badge/Cloudflare%20R2-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)
 ![Google Gemini](https://img.shields.io/badge/Google%20Gemini-4285F4?style=for-the-badge&logo=google&logoColor=white)
+![Google Cloud Run](https://img.shields.io/badge/Google%20Cloud%20Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
 ![Clerk](https://img.shields.io/badge/Clerk%20Auth-6C47FF?style=for-the-badge&logo=clerk&logoColor=white)
 
 **Chat with any PDF in seconds with verified answers, exact page citations, and cloud vector search.**
 
-[Live Demo](#-deployment-guide) • [Key Features](#-features) • [Architecture](#-architecture) • [Local Setup](#-getting-started) • [API Docs](#-api-endpoints)
+[Key Features](#features) • [Architecture](#architecture) • [Local Setup](#local-development) • [Deployment](#deployment) • [API Reference](#api-reference)
 
 </div>
 
 ---
 
-## 🌟 Overview
+## Overview
 
-**Docsy AI** is a production-ready **Retrieval-Augmented Generation (RAG)** platform designed to transform static PDF documents (financial reports, research papers, textbooks, legal filings, and manuals) into interactive conversational knowledge bases.
+**Docsy AI** is a production-ready **Retrieval-Augmented Generation (RAG)** application that allows users to upload PDF documents (financial reports, research papers, documentation, textbooks) and converse with them naturally.
 
-Users can upload documents, index their contents asynchronously through background queue workers, and ask complex questions — receiving precise answers backed by **exact page citations** in real time.
-
----
-
-## ✨ Features
-
-- ⚡ **Instant Semantic Search**: High-dimensional text embeddings generated via **Google Gemini** and stored in **Qdrant Vector Database**.
-- 🎯 **Exact Page Citations**: Every generated insight cites specific source page numbers (e.g., `Page 4`, `Page 11`) so users can verify facts instantly.
-- 📦 **Asynchronous Processing Queue**: Heavy PDF parsing, chunking, and embedding generation are offloaded to **BullMQ** & **Redis** background workers, keeping API responses lightning-fast.
-- ☁️ **Cloud Storage**: Secure, scalable PDF file persistence powered by **Cloudflare R2** with $0 egress fees.
-- 🔒 **User Isolation & Authentication**: Complete multi-tenant isolation with **Clerk Authentication**, enforcing a quota of up to **5 PDFs per account**.
-- 💬 **Persistent Chat History**: Previous conversations are saved per-document in **PostgreSQL** via **Prisma ORM**.
-- 🎨 **Modern Next.js 16 UI**: Sleek landing page for signed-out visitors, interactive preview simulations, prompt suggestion chips, and responsive dual-pane workspace for authenticated users.
+Every answer generated is grounded strictly in the document content and tagged with **exact page citations**, eliminating hallucinations and enabling immediate verification.
 
 ---
 
-## 🏗️ Architecture
+## Features
+
+- **Semantic Search**: Text is split into overlapping chunks, vectorized with Google Gemini embeddings (`gemini-embedding-2`), and indexed in **Qdrant Vector Database**.
+- **Exact Page Citations**: Every response returns exact source page numbers (e.g. `Page 4`, `Page 11`) for fast reference checking.
+- **Asynchronous Indexing**: Document parsing and vector embedding generation run in the background without blocking upload requests.
+- **Cloudflare R2 Storage**: PDF files are persisted securely in S3-compatible R2 buckets with zero egress fees.
+- **Multi-Tenant User Auth**: User isolation powered by **Clerk Authentication**, with per-user document quotas (up to 5 PDFs).
+- **Persistent Chat History**: Previous conversations are saved per-document in **PostgreSQL** via **Prisma ORM**.
+- **Real-Time Polling UI**: Clean Next.js 16 interface that automatically tracks document processing status and updates in real-time without page reloads.
+
+---
+
+## Architecture
 
 ```mermaid
 flowchart TD
     User([User / Browser])
-    Client[Next.js 16 Frontend App]
+    Client[Next.js 16 Client App]
     Clerk[Clerk Auth Provider]
-    API[Express REST API Server]
-    Queue[(BullMQ / Redis Queue)]
-    Worker[PDF Background Worker]
+    API[Express API Server on Cloud Run]
+    Queue[(BullMQ / Async Fallback)]
+    Worker[PDF Processing Worker]
     R2[(Cloudflare R2 Storage)]
     Postgres[(PostgreSQL Database)]
     Qdrant[(Qdrant Vector DB)]
-    Gemini[Google Gemini 2.0 / Flash]
+    Gemini[Google Gemini API]
 
     User -->|Interacts| Client
     Client -->|Authenticates| Clerk
     Client -->|Upload PDF / Chat query| API
     
-    API -->|Store metadata & status| Postgres
-    API -->|Upload file| R2
-    API -->|Enqueue file-ready job| Queue
+    API -->|Store document record| Postgres
+    API -->|Upload PDF binary| R2
+    API -->|Dispatch job| Queue
     
-    Queue -->|Pulls job| Worker
-    Worker -->|Download PDF| R2
-    Worker -->|Split chunks & Embeddings| Gemini
-    Worker -->|Upsert vectors with metadata| Qdrant
+    Queue -->|Process PDF| Worker
+    Worker -->|Download PDF buffer| R2
+    Worker -->|Generate embeddings| Gemini
+    Worker -->|Store vector chunks| Qdrant
     Worker -->|Update status: COMPLETED| Postgres
 
-    API -->|Similarity Search| Qdrant
-    API -->|Prompt + Context| Gemini
-    API -->|Save message & citations| Postgres
-    API -->|Return stream answer| Client
+    API -->|Vector similarity search| Qdrant
+    API -->|Grounded RAG prompt| Gemini
+    API -->|Persist message & citations| Postgres
+    API -->|Return structured response| Client
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### **Frontend** (`client/`)
-- **Framework**: [Next.js 16](https://nextjs.org/) (App Router, Turbopack)
-- **Library**: [React 19](https://react.dev/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-- **Authentication**: [@clerk/nextjs](https://clerk.com/)
-- **HTTP Client**: [Axios](https://axios-http.com/)
+- **Framework**: Next.js 16 (App Router, Turbopack)
+- **Library**: React 19, TypeScript
+- **Styling**: Tailwind CSS, Lucide React icons
+- **Authentication**: `@clerk/nextjs`
+- **HTTP Client**: Axios
 
-### **Backend & Services** (`server/`)
-- **Runtime**: [Node.js](https://nodejs.org/) (ES Modules)
-- **Framework**: [Express 5](https://expressjs.com/)
-- **Database & ORM**: [PostgreSQL](https://www.postgresql.org/) with [Prisma ORM 6](https://www.prisma.io/)
-- **Job Queue**: [BullMQ](https://bullmq.io/) with [IORedis](https://github.com/redis/ioredis)
-- **Vector Database**: [Qdrant](https://qdrant.tech/) with `@langchain/qdrant`
-- **Object Storage**: [Cloudflare R2](https://www.cloudflare.com/developer-platform/r2/) via `@aws-sdk/client-s3`
-- **AI & Embeddings**: [Google Gen AI SDK](https://github.com/google-gemini/generative-ai-js) & `@langchain/google-genai`
-- **Document Processing**: `@langchain/community` PDF loader & `@langchain/textsplitters`
+### **Backend** (`server/`)
+- **Runtime**: Node.js 20 (ES Modules)
+- **Framework**: Express 5
+- **Database**: PostgreSQL with Prisma ORM 6
+- **Vector DB**: Qdrant Cloud (`@langchain/qdrant`)
+- **Object Storage**: Cloudflare R2 (`@aws-sdk/client-s3`)
+- **LLM & Embeddings**: Google Gemini API (`@google/genai`, `@langchain/google-genai`)
+- **Job Processing**: BullMQ / in-process async worker fallback
+- **Hosting**: Google Cloud Run & Artifact Registry
 
 ---
 
-## 🚀 Getting Started
+## Local Development
 
 ### Prerequisites
 - **Node.js**: `v20.x` or later
-- **Docker Desktop** (optional for local Valkey/Postgres/Qdrant)
-- **Accounts / Keys** (free tiers):
-  - [Clerk](https://clerk.com/)
-  - [Google AI Studio](https://aistudio.google.com/)
-  - [Qdrant Cloud](https://cloud.qdrant.io/)
-  - [Cloudflare R2](https://dash.cloudflare.com/)
+- **Docker Desktop** (optional for local database & vector store)
+- Free tier accounts for **Clerk**, **Google AI Studio**, **Qdrant Cloud**, and **Cloudflare R2**.
 
 ---
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/ShivamCo/ai-pdf-rag/
+git clone https://github.com/ShivamCo/ai-pdf-rag.git
 cd ai-pdf
 ```
 
@@ -121,50 +117,54 @@ cd ai-pdf
 
 ### 2. Configure Backend (`server/`)
 
-Create `server/.env` with your environment variables:
+Create `server/.env`:
 
 ```bash
 cd server
 cp .env.example .env
 ```
 
-Fill in your credentials:
+Set the required environment variables:
 
 ```env
-PORT=5300
+PORT=8080
 ORIGIN_DEV=http://localhost:3000
 
-# Database (Local Postgres or Prisma Cloud/Neon)
-DATABASE_URL="postgresql://postgres:postgrespassword@localhost:5432/aipdf?schema=public"
-
-# Redis (Local or Upstash)
-REDIS_HOST="localhost"
-REDIS_PORT=6379
-# REDIS_URL="rediss://default:password@endpoint.upstash.io:6379"
+# Database (PostgreSQL / Prisma Accelerate / Neon)
+DATABASE_URL="postgres://user:password@host:5432/dbname?sslmode=require"
 
 # Vector Store (Qdrant Cloud or Local)
-QDRANT_URL="https://your-cluster-id.us-west-1-0.aws.cloud.qdrant.io"
+QDRANT_URL="https://your-cluster-id.aws.cloud.qdrant.io"
 QDRANT_API_KEY="your-qdrant-api-key"
 
-# AI Model Key
-GOOGLE_API_KEY="your-gemini-api-key"
+# AI Model Key (Google AI Studio)
+GOOGLE_API_KEY="AIzaSy..."
 
 # Cloudflare R2 Object Storage
 CLOUDFLARE_S3_ENDPOINT="https://<ACCOUNT_ID>.r2.cloudflarestorage.com"
-CLOUDFLARE_ACCESS_KEY_ID="your-r2-access-key-id"
-CLOUDFLARE_SECRET_ACCESS_KEY="your-r2-secret-access-key"
+CLOUDFLARE_ACCESS_KEY_ID="your-access-key-id"
+CLOUDFLARE_SECRET_ACCESS_KEY="your-secret-access-key"
 CLOUDFLARE_BUCKET_NAME="ai-pdf-bucket"
 
 # Clerk Authentication
 CLERK_SECRET_KEY="sk_test_..."
 CLERK_PUBLISHABLE_KEY="pk_test_..."
+
+# Redis (Optional: if not provided, in-process async worker is used)
+# REDIS_URL="rediss://default:password@endpoint.upstash.io:6379"
 ```
 
-Install dependencies & sync database:
+Install dependencies and push schema to database:
 
 ```bash
 npm install
 npx prisma db push
+```
+
+Start the backend server:
+
+```bash
+npm run dev
 ```
 
 ---
@@ -184,48 +184,14 @@ CLERK_SECRET_KEY="sk_test_..."
 NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
 NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
 
-NEXT_PUBLIC_API_URL="http://localhost:5300"
+NEXT_PUBLIC_API_URL="http://localhost:8080"
+NEXT_PUBLIC_API_URL_PDF="http://localhost:8080"
 ```
 
-Install client dependencies:
+Install dependencies and start development server:
 
 ```bash
 npm install
-```
-
----
-
-### 4. Running the Application Locally
-
-#### Option A: Using Docker for Infrastructure
-From the project root:
-
-```bash
-# 1. Start Postgres, Valkey (Redis), and Qdrant in Docker
-docker compose up -d
-
-# 2. Start the Backend API Server
-cd server
-npm run dev
-
-# 3. Start the Background Worker (in a separate terminal)
-cd server
-npm run dev:worker
-
-# 4. Start the Frontend App (in a separate terminal)
-cd client
-npm run dev
-```
-
-#### Option B: Using Cloud Services (Prisma Cloud, Upstash, Qdrant Cloud)
-If you already use hosted cloud instances (e.g. Upstash, Qdrant Cloud, Prisma Postgres), simply start:
-
-```bash
-# In server/
-npm run dev
-npm run dev:worker
-
-# In client/
 npm run dev
 ```
 
@@ -233,87 +199,120 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 📡 API Endpoints
+## Deployment
 
-### **Document Management**
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :---: |
-| `POST` | `/api/upload-document` | Upload PDF (enforces 5 PDF limit per user) | ✅ |
-| `GET` | `/api/user-documents` | List all documents belonging to user | ✅ |
-| `DELETE`| `/api/documents/:id` | Delete document, R2 file, and chat history | ✅ |
+### **Backend: Google Cloud Run**
 
-### **Chat & RAG Operations**
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :---: |
-| `POST` | `/api/chat` | Query document & receive answer + page citations | ✅ |
-| `GET` | `/api/chat/history/:documentId` | Fetch message history for selected document | ✅ |
+The backend is configured for deployment to **Google Cloud Run** using Google Cloud Build and Artifact Registry.
+
+#### Option A: One-Command Deployment Script
+From the project root:
+
+```bash
+./deploy.sh
+```
+
+#### Option B: NPM Command
+From the `server/` directory:
+
+```bash
+cd server
+npm run deploy
+```
+
+#### Option C: Manual CLI Commands
+```bash
+# 1. Build and push container to Artifact Registry
+gcloud builds submit server/ \
+  --tag asia-south1-docker.pkg.dev/ai-pdf-506012/my-app-repo/ai-pdf-server:latest \
+  --project=ai-pdf-506012
+
+# 2. Deploy to Cloud Run
+gcloud run deploy ai-pdf-server \
+  --image=asia-south1-docker.pkg.dev/ai-pdf-506012/my-app-repo/ai-pdf-server:latest \
+  --region=asia-south1 \
+  --project=ai-pdf-506012 \
+  --allow-unauthenticated \
+  --memory=1Gi \
+  --cpu=1 \
+  --timeout=300
+```
 
 ---
 
-## 🌐 Deployment Guide (100% Free)
+### **Frontend: Vercel**
 
-### **1. Deploy Backend on [Render.com](https://render.com) / [Railway](https://railway.app)**
-1. Create a new **Web Service** and connect your repo.
-2. Set **Root Directory** to `server`.
-3. Set **Build Command**: `npm install && npx prisma db push`.
-4. Set **Start Command**: `npm start` *(starts both API server and background worker)*.
-5. Add your environment variables from `server/.env`.
-6. Copy your live backend URL (e.g. `https://docsy-api.onrender.com`).
-
-### **2. Deploy Frontend on [Vercel](https://vercel.com)**
-1. Import repository on Vercel.
+1. Import the repository on [Vercel](https://vercel.com).
 2. Set **Root Directory** to `client`.
-3. Add environment variables:
+3. Add the following environment variables:
    - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
    - `CLERK_SECRET_KEY`
    - `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`
    - `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`
-   - `NEXT_PUBLIC_API_URL=https://docsy-api.onrender.com` *(from step 1)*
+   - `NEXT_PUBLIC_API_URL=https://ai-pdf-server-614148168155.asia-south1.run.app`
+   - `NEXT_PUBLIC_API_URL_PDF=https://ai-pdf-server-614148168155.asia-south1.run.app`
 4. Click **Deploy**.
-
-### **3. Update Clerk Redirect URLs**
-- In [Clerk Dashboard](https://dashboard.clerk.com), add your production Vercel domain (`https://your-app.vercel.app`) under **Allowed Origins** and **Redirects**.
+5. Add your Vercel production URL in the [Clerk Dashboard](https://dashboard.clerk.com) under **Allowed Origins** and **Redirects**.
 
 ---
 
-## 📁 Project Structure
+## API Reference
+
+### **Documents**
+| Method | Endpoint | Description | Auth |
+| :--- | :--- | :--- | :---: |
+| `POST` | `/api/upload-document` | Upload PDF file (max 25MB, 5 docs per user quota) | Yes |
+| `GET` | `/api/user-documents` | List all documents for the authenticated user | Yes |
+| `DELETE` | `/api/documents/:id` | Delete document record, R2 storage object, and chat history | Yes |
+
+### **Chat & RAG**
+| Method | Endpoint | Description | Auth |
+| :--- | :--- | :--- | :---: |
+| `POST` | `/api/chat` | Query document and receive answer with page citations | Yes |
+| `GET` | `/api/chat/history/:documentId` | Retrieve chat message history for a document | Yes |
+
+---
+
+## Project Structure
 
 ```
 ai-pdf/
 ├── client/                      # Next.js 16 Frontend
 │   ├── app/
 │   │   ├── component/
-│   │   │   ├── LandingPage.tsx  # Signed-out landing page
-│   │   │   ├── chatComponent.tsx# Main 2-pane workspace & chat
-│   │   │   └── fileUpload.tsx   # Drag-and-drop uploader
-│   │   ├── layout.tsx           # Navigation bar & Clerk provider
-│   │   ├── page.tsx             # Home route switcher
-│   │   ├── sign-in/             # Clerk Sign-In page
-│   │   └── sign-up/             # Clerk Sign-Up page
+│   │   │   ├── LandingPage.tsx  # Marketing landing page
+│   │   │   ├── chatComponent.tsx# Dual-pane workspace & chat
+│   │   │   └── fileUpload.tsx   # PDF dropzone uploader
+│   │   ├── layout.tsx           # Navbar & Clerk provider
+│   │   ├── page.tsx             # Home route
+│   │   ├── sign-in/             # Clerk Sign-In route
+│   │   └── sign-up/             # Clerk Sign-Up route
 │   └── package.json
 │
-├── server/                      # Express API & RAG Worker
+├── server/                      # Express API & Background Worker
 │   ├── prisma/
-│   │   └── schema.prisma        # PostgreSQL Document & Chat models
+│   │   └── schema.prisma        # PostgreSQL Schema (Document & ChatMessage)
 │   ├── src/
-│   │   ├── config/              # AI, DB, Qdrant, Redis & Env configs
+│   │   ├── config/              # AI, DB, Qdrant, Redis & Env
 │   │   ├── controllers/         # Document & Chat controllers
 │   │   ├── jobs/
-│   │   │   └── pdfWorker.js     # BullMQ background processing worker
-│   │   ├── middlewares/         # Clerk Auth, Multer, Error handlers
-│   │   ├── queues/              # BullMQ queue definitions
+│   │   │   └── pdfWorker.js     # BullMQ background worker
+│   │   ├── middlewares/         # Clerk Auth, Multer, Error handler
+│   │   ├── queues/              # Document queue & async dispatcher
 │   │   ├── routes/              # Express API routes
-│   │   ├── services/            # Storage, PDF chunking, RAG service
-│   │   ├── app.js               # Express application setup
+│   │   ├── services/            # Storage (R2), PDF chunking & RAG logic
+│   │   ├── app.js               # Express application
 │   │   └── server.js            # Entry point
+│   ├── Dockerfile               # Production container definition
 │   └── package.json
 │
-├── docker-compose.yml           # Local dev services (Valkey, Postgres, Qdrant)
+├── deploy.sh                    # One-command Cloud Run deployment script
+├── docker-compose.yml           # Optional local infrastructure
 └── README.md                    # Project documentation
 ```
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the [ISC License](LICENSE).

@@ -7,37 +7,52 @@ import { clerkAuthHandler } from './middlewares/auth.middleware.js';
 
 const app = express();
 
-// Middlewares
 app.use(
   cors({
-    origin: env.ORIGIN_DEV,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
+    origin: (origin, callback) => {
+      if (!origin || env.ORIGIN_DEV === '*' || !env.ORIGIN_DEV) {
+        return callback(null, true);
+      }
+      const allowed = [
+        env.ORIGIN_DEV,
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:3000',
+      ];
+      if (allowed.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-user-id',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+    ],
     credentials: true,
+    optionsSuccessStatus: 200,
   })
 );
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Attach Clerk Auth Handler to parse JWT session tokens
 app.use(clerkAuthHandler);
 
-// Health check endpoint
 app.get('/', (req, res) => {
-  res.status(200).json({
-    status: 'online',
-    message: 'AI PDF RAG API Server is running!',
+  res.json({
+    status: 'ok',
+    message: 'API is running',
   });
 });
 
-// API Routes
 app.use('/api', apiRouter);
-
-// Fallback direct mounts for backward compatibility
 app.use('/', apiRouter);
 
-// Global Error Handler
 app.use(errorHandler);
 
 export default app;
+

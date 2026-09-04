@@ -20,9 +20,7 @@ export const isR2Configured = () => {
 export const getS3Client = () => {
   if (!s3Client) {
     if (!isR2Configured()) {
-      throw new Error(
-        'Cloudflare R2 credentials are missing in environment variables.'
-      );
+      throw new Error('Cloudflare R2 credentials are missing');
     }
     s3Client = new S3Client({
       region: 'auto',
@@ -36,9 +34,6 @@ export const getS3Client = () => {
   return s3Client;
 };
 
-/**
- * Uploads a local file to Cloudflare R2 bucket
- */
 export const uploadToR2 = async (
   filePath,
   filename,
@@ -56,7 +51,6 @@ export const uploadToR2 = async (
   });
 
   await s3.send(command);
-  console.log(`[Storage Service] Uploaded file to Cloudflare R2: ${key}`);
 
   return {
     key,
@@ -64,9 +58,6 @@ export const uploadToR2 = async (
   };
 };
 
-/**
- * Downloads a file buffer from Cloudflare R2 bucket
- */
 export const downloadFromR2 = async (r2Key) => {
   const s3 = getS3Client();
   const command = new GetObjectCommand({
@@ -79,9 +70,6 @@ export const downloadFromR2 = async (r2Key) => {
   return Buffer.from(byteArray);
 };
 
-/**
- * Deletes a file from Cloudflare R2 bucket
- */
 export const deleteFromR2 = async (r2Key) => {
   if (!r2Key) return;
   try {
@@ -90,30 +78,19 @@ export const deleteFromR2 = async (r2Key) => {
       Bucket: env.CLOUDFLARE_BUCKET_NAME,
       Key: r2Key,
     });
-
     await s3.send(command);
-    console.log(`[Storage Service] Deleted file from Cloudflare R2: ${r2Key}`);
   } catch (error) {
-    console.error(
-      `[Storage Service] Failed to delete file from Cloudflare R2 (${r2Key}):`,
-      error.message
-    );
+    console.error(`Failed to delete R2 file (${r2Key}):`, error.message);
   }
 };
 
-/**
- * Safely deletes a file from the local filesystem
- */
 export const deleteLocalFile = async (filePath) => {
   try {
     if (filePath && fs.existsSync(filePath)) {
       await fs.promises.unlink(filePath);
-      console.log(`[Storage Service] Deleted local temp file: ${filePath}`);
     }
   } catch (error) {
-    console.error(
-      `[Storage Service] Failed to delete local temp file (${filePath}):`,
-      error.message
-    );
+    console.error(`Failed to delete temp file (${filePath}):`, error.message);
   }
 };
+

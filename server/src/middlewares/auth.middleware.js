@@ -13,43 +13,35 @@ export const requireAuthentication = (req, res, next) => {
 
   try {
     const auth = getAuth(req);
-    if (auth && auth.userId) {
+    if (auth?.userId) {
       userId = auth.userId;
       authData = auth;
     }
-  } catch (err) {
-    // Fallback if getAuth throws
-  }
+  } catch {}
 
   if (!userId && typeof req.auth === 'function') {
     try {
       const auth = req.auth();
-      if (auth && auth.userId) {
+      if (auth?.userId) {
         userId = auth.userId;
         authData = auth;
       }
-    } catch (err) {}
-  } else if (!userId && req.auth && typeof req.auth === 'object') {
+    } catch {}
+  } else if (!userId && req.auth?.userId) {
     userId = req.auth.userId;
     authData = req.auth;
   }
 
-  // Development fallback header if testing without Clerk session
+  // Fallback header for development/testing
   if (!userId && req.headers['x-user-id']) {
     userId = req.headers['x-user-id'];
     authData = { userId };
   }
 
   if (!userId) {
-    return next(
-      new ApiError(
-        401,
-        'Unauthorized request. Please sign in to upload and manage PDFs.'
-      )
-    );
+    return next(new ApiError(401, 'Please sign in to continue'));
   }
 
-  // Standardize req.userId and req.auth for all controllers
   req.userId = userId;
   req.auth = {
     ...authData,
@@ -58,3 +50,4 @@ export const requireAuthentication = (req, res, next) => {
 
   next();
 };
+
