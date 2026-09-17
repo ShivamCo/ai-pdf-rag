@@ -94,18 +94,36 @@ export const generateRagResponse = async ({ question, documentId, userId }) => {
 
   const context = contextDocs.map((doc) => doc.pageContent).join('\n\n');
 
-  const prompt = `You are a helpful and knowledgeable AI assistant that answers questions based on the provided PDF document context.
+  const prompt = `
+  
+  You are a helpful and knowledgeable AI assistant. Answer the user's question using only the information available in the provided PDF context.
 
 PDF Context:
+
 ${context}
 
-Question:
+User Question:
+
 ${question}
 
 Instructions:
-- Answer the question accurately and thoroughly based on the provided PDF context.
-- Highlight key facts, explanations, or data points mentioned in the text.
-- Only say "I couldn't find this information in the provided document" if the provided text truly contains no information relevant to the question.`;
+
+* Answer accurately based on the provided PDF context.
+* Use simple, clear, and easy-to-understand language.
+* Give a direct answer first, then provide any useful explanation or supporting details.
+* Include important facts, figures, dates, names, or data mentioned in the document when relevant.
+* Keep the response concise unless the question requires a detailed explanation.
+* Use short paragraphs and bullet points when they improve readability.
+* Do not use Markdown bold formatting.
+* Do not use double asterisks (**) around words or sentences.
+* Avoid excessive headings, symbols, decorative formatting, or unnecessary Markdown.
+* Do not repeat the same information.
+* Do not add information that is not supported by the provided PDF context.
+* If the context contains partial information, answer using the available information and clearly mention what is missing.
+* Only say "I couldn't find this information in the provided document." when the PDF context contains no relevant information for the question.
+
+  
+  `;
 
   const answerText = await callGeminiWithFallback(prompt);
 
