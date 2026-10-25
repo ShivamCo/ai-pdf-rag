@@ -2,3 +2,7 @@
 
 # Local Netlify folder
 .netlify
+
+# macOS metadata files
+._*
+.DS_Store

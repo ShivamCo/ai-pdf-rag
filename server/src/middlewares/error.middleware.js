@@ -9,6 +9,10 @@ export const errorHandler = (err, req, res, next) => {
     error = new ApiError(statusCode, message, [], err.stack);
   }
 
+  if (error.statusCode >= 500) {
+    console.error(`${req.method} ${req.originalUrl} ->`, err);
+  }
+
   const response = {
     statusCode: error.statusCode,
     success: false,

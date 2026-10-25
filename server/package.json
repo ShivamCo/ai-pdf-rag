@@ -41,10 +41,5 @@
   "devDependencies": {
     "prettier": "^3.9.6",
     "prisma": "^6.4.1"
-  },
-  "overrides": {
-    "@browserbasehq/stagehand": {
-      "dotenv": "$dotenv"
-    }
   }
 }
