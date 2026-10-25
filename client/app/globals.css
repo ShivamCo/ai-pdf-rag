@@ -1,25 +1,38 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --paper: #f3f0e8;
+  --paper-deep: #ebe7dc;
+  --ink: #1a1915;
+  --muted: #7a756a;
+  --rule: #d9d4c7;
+  --accent: #d9481c;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-instrument-serif);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
 }
 
-/* Custom modern scrollbar */
+::selection {
+  background: var(--accent);
+  color: var(--paper);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -30,39 +43,56 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--rule);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--muted);
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
+/* Blinking caret used for "reading" states */
+@keyframes caret {
+  0%, 49% {
+    opacity: 1;
   }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-@keyframes pulseGlow {
-  0%, 100% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.05);
+  50%, 100% {
+    opacity: 0;
   }
 }
 
-.animate-float {
-  animation: float 4s ease-in-out infinite;
+.animate-caret {
+  animation: caret 1s steps(1) infinite;
 }
 
-.animate-pulse-glow {
-  animation: pulseGlow 6s ease-in-out infinite;
+/* Gentle reveal for new messages */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
+.animate-rise {
+  animation: rise 0.35s ease-out both;
+}
+
+/* Highlighter sweep on the landing page specimen */
+@keyframes highlight {
+  from {
+    background-size: 0% 100%;
+  }
+  to {
+    background-size: 100% 100%;
+  }
+}
+
+.highlight-sweep {
+  background-image: linear-gradient(transparent 55%, color-mix(in srgb, var(--accent) 22%, transparent) 55%);
+  background-repeat: no-repeat;
+  animation: highlight 1.2s 0.6s ease-out both;
+}

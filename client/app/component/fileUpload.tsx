@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Loader2, FileUp, AlertCircle, CheckCircle2 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "@clerk/nextjs";
 
@@ -103,7 +102,7 @@ export default function FileUpload({ onUploadSuccess, disabled }: FileUploadProp
   };
 
   return (
-    <div className="flex flex-col items-center w-full">
+    <div className="flex w-full flex-col">
       <input
         ref={fileInputRef}
         type="file"
@@ -122,56 +121,46 @@ export default function FileUpload({ onUploadSuccess, disabled }: FileUploadProp
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`group relative flex flex-col items-center justify-center w-full min-h-[160px] p-6 rounded-2xl border-2 border-dashed transition-all cursor-pointer select-none text-center ${
+        className={`flex min-h-[180px] w-full select-none flex-col items-center justify-center border border-dashed p-6 text-center transition ${
           disabled || isUploading
-            ? "border-slate-200 bg-slate-50/70 text-slate-400 cursor-not-allowed opacity-80"
+            ? "cursor-not-allowed border-rule text-muted"
             : isDragging
-            ? "border-blue-500 bg-blue-50/80 scale-[1.01] shadow-lg shadow-blue-500/10 text-blue-800"
-            : "border-slate-300 bg-white hover:border-blue-500 hover:bg-blue-50/30 text-slate-600 shadow-xs hover:shadow-md"
+            ? "cursor-copy border-accent bg-accent/5"
+            : "cursor-pointer border-rule hover:border-ink"
         }`}
       >
         {isUploading ? (
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-slate-900">{uploadStep}</p>
-              <p className="text-[11px] text-slate-500">Please wait while we index your PDF</p>
-            </div>
+          <div className="flex flex-col items-center gap-2">
+            <p className="font-serif text-2xl italic">
+              Reading<span className="animate-caret">_</span>
+            </p>
+            <p className="font-mono text-[11px] text-muted">{uploadStep}</p>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3">
-            <div
-              className={`flex h-12 w-12 items-center justify-center rounded-2xl transition ${
-                isDragging
-                  ? "bg-blue-600 text-white scale-110"
-                  : "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white group-hover:scale-105"
-              }`}
-            >
-              <FileUp className="h-6 w-6" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs sm:text-sm font-bold text-slate-800">
-                {isDragging ? "Drop your PDF file here" : "Click to upload or drag & drop"}
-              </p>
-              <p className="text-[11px] text-slate-500">PDF documents only (up to 25MB, max 5 documents)</p>
-            </div>
+          <div className="flex flex-col items-center gap-2">
+            <p className={`font-serif text-3xl ${isDragging ? "italic text-accent" : ""}`}>
+              {isDragging ? "Let go." : "Drop a PDF here"}
+            </p>
+            <p className="text-sm text-muted">
+              or <span className="text-ink underline decoration-rule underline-offset-4">browse your files</span>
+            </p>
+            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
+              pdf only · 25 mb max · 5 documents
+            </p>
           </div>
         )}
       </div>
 
-      {/* Error Alert */}
       {errorMessage && (
-        <div className="mt-3 flex w-full items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 animate-in fade-in">
-          <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
-          <span className="flex-1 font-medium">{errorMessage}</span>
+        <div className="mt-3 flex w-full items-start gap-3 border-l-2 border-accent py-1 pl-3 text-sm text-accent">
+          <span className="flex-1">{errorMessage}</span>
           <button
             type="button"
             onClick={() => setErrorMessage(null)}
-            className="cursor-pointer text-rose-500 hover:text-rose-800 font-bold"
+            className="cursor-pointer font-mono text-xs text-muted hover:text-ink"
+            aria-label="Dismiss"
           >
-            ×
+            ✕
           </button>
         </div>
       )}

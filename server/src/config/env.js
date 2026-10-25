@@ -17,7 +17,8 @@ export const env = {
   CLOUDFLARE_SECRET_ACCESS_KEY: process.env.CLOUDFLARE_SECRET_ACCESS_KEY || '',
   CLOUDFLARE_BUCKET_NAME: process.env.CLOUDFLARE_BUCKET_NAME || 'ai-pdf-bucket',
   DATABASE_URL: process.env.DATABASE_URL,
-  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+  CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-haiku-5-5',
   CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || '',
   CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY || '',
 };

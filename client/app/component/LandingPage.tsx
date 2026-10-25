@@ -1,267 +1,172 @@
 "use client";
 
-import {
-  FileText,
-  Sparkles,
-  Search,
-  CheckCircle2,
-  Zap,
-  ArrowRight,
-  Database,
-  Layers,
-  Bot,
-  User,
-} from "lucide-react";
 import { SignUpButton, SignInButton } from "@clerk/nextjs";
+
+const STEPS = [
+  {
+    title: "Upload",
+    body: "Drop in any report, paper, contract or handbook. Up to five PDFs, 25 MB each.",
+  },
+  {
+    title: "Index",
+    body: "Every page is split into passages and embedded with Gemini, then stored in Qdrant.",
+  },
+  {
+    title: "Ask",
+    body: "Ask in plain language. Answers come only from your document, with the pages they came from.",
+  },
+];
+
+const NOTES = [
+  ["Grounded", "Answers are drawn strictly from the PDF, not from the open web."],
+  ["Cited", "Every reply points back to the exact pages it relied on."],
+  ["Remembered", "Each document keeps its own conversation, ready when you return."],
+  ["Private", "Your files are tied to your account and can be deleted any time."],
+];
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative pt-16 pb-20 md:pt-24 md:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full flex flex-col items-center text-center">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-blue-400/20 via-indigo-300/20 to-purple-300/20 blur-3xl -z-10 rounded-full pointer-events-none" />
-
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-blue-200/80 bg-blue-50/80 backdrop-blur-sm text-xs font-semibold text-blue-700 shadow-xs mb-8">
-          <Sparkles className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
-          <span>Next-Gen RAG with Google Gemini & Cloudflare R2</span>
-        </div>
-
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 max-w-4xl leading-[1.12]">
-          Chat with any PDF in{" "}
-          <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
-            Seconds
-          </span>{" "}
-          with Exact Citations
-        </h1>
-
-        <p className="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl font-normal leading-relaxed">
-          Stop skimming 100-page reports and textbooks. Ask questions naturally and receive
-          accurate answers backed by exact page references from your documents.
-        </p>
-
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <SignUpButton mode="modal">
-            <button className="cursor-pointer inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-7 py-4 text-base font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/30 active:scale-[0.98]">
-              <Sparkles className="h-4 w-4" />
-              <span>Get Started Free</span>
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </SignUpButton>
-
-          <SignInButton mode="modal">
-            <button className="cursor-pointer inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-7 py-4 text-base font-medium text-slate-700 shadow-xs transition hover:bg-slate-50 hover:text-slate-900 active:scale-[0.98]">
-              <span>Sign In to Account</span>
-            </button>
-          </SignInButton>
-        </div>
-
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500 font-medium">
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            <span>Store up to 5 PDFs Free</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            <span>Exact Page Citations</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            <span>Persistent Chat History</span>
-          </div>
-        </div>
-
-        {/* Interactive Mock Preview Card */}
-        <div className="mt-16 w-full max-w-4xl rounded-3xl border border-slate-200/80 bg-white p-3 sm:p-5 shadow-2xl shadow-slate-200/60 transition-all hover:shadow-blue-500/5">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3 px-3">
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1.5">
-                <div className="h-3 w-3 rounded-full bg-rose-400" />
-                <div className="h-3 w-3 rounded-full bg-amber-400" />
-                <div className="h-3 w-3 rounded-full bg-emerald-400" />
-              </div>
-              <div className="hidden sm:flex items-center gap-2 ml-4 px-3 py-1 rounded-lg bg-slate-100 text-xs font-medium text-slate-600">
-                <FileText className="h-3.5 w-3.5 text-blue-600" />
-                <span>Quarterly_Financial_Report_2024.pdf</span>
-                <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-100 px-1.5 py-0.2 rounded">Ready</span>
-              </div>
-            </div>
-            <span className="text-xs font-semibold text-slate-400">Docsy AI Preview</span>
-          </div>
-
-          <div className="p-4 sm:p-6 space-y-5 text-left bg-slate-50/50 rounded-2xl mt-3">
-            <div className="flex items-start gap-3 justify-end">
-              <div className="rounded-2xl rounded-tr-xs bg-blue-600 px-4 py-2.5 text-xs sm:text-sm text-white shadow-xs max-w-[85%] sm:max-w-[70%]">
-                What are the total net revenue and key growth drivers mentioned in Q3?
-              </div>
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-700 text-xs font-bold">
-                <User className="h-4 w-4" />
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xs">
-                <Bot className="h-4 w-4" />
-              </div>
-              <div className="space-y-2 rounded-2xl rounded-tl-xs border border-slate-200 bg-white p-4 text-xs sm:text-sm text-slate-800 shadow-xs max-w-[90%] sm:max-w-[80%]">
-                <p className="font-normal leading-relaxed">
-                  According to the report, net revenue in Q3 reached <strong className="font-semibold text-slate-950">$48.2 million</strong>, representing an increase of <strong>24% year-over-year</strong>.
-                </p>
-                <p className="font-normal leading-relaxed text-slate-600">
-                  The primary growth drivers were expansion in enterprise SaaS subscriptions (+32%) and higher adoption in international markets.
-                </p>
-
-                <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
-                  <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
-                    <Search className="h-3 w-3" /> Sources:
-                  </span>
-                  <span className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
-                    Page 4
-                  </span>
-                  <span className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
-                    Page 11
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Grid */}
-      <section className="py-20 bg-white border-y border-slate-200/80 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">Supercharged RAG Pipeline</h2>
-            <p className="mt-2 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-              Engineered for Speed, Precision, and Accuracy
-            </p>
-            <p className="mt-4 text-slate-600 text-sm sm:text-base">
-              Built with state-of-the-art vector embedding technology and modern cloud infrastructure.
-            </p>
-          </div>
-
-          <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="group relative rounded-3xl border border-slate-200/80 bg-slate-50/50 p-6 transition hover:border-blue-500/50 hover:bg-white hover:shadow-xl hover:shadow-blue-500/5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-md shadow-blue-500/20 group-hover:scale-110 transition">
-                <Zap className="h-6 w-6" />
-              </div>
-              <h3 className="mt-5 text-base font-bold text-slate-900">Instant Semantic Search</h3>
-              <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Text chunks are indexed with high-dimensional Google Gemini embeddings stored in a blazing-fast Qdrant vector database.
-              </p>
-            </div>
-
-            <div className="group relative rounded-3xl border border-slate-200/80 bg-slate-50/50 p-6 transition hover:border-indigo-500/50 hover:bg-white hover:shadow-xl hover:shadow-indigo-500/5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-500/20 group-hover:scale-110 transition">
-                <Search className="h-6 w-6" />
-              </div>
-              <h3 className="mt-5 text-base font-bold text-slate-900">Exact Page References</h3>
-              <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Never second-guess an answer. Every insight is tagged with exact page numbers directly from your original document.
-              </p>
-            </div>
-
-            <div className="group relative rounded-3xl border border-slate-200/80 bg-slate-50/50 p-6 transition hover:border-violet-500/50 hover:bg-white hover:shadow-xl hover:shadow-violet-500/5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-md shadow-violet-500/20 group-hover:scale-110 transition">
-                <Database className="h-6 w-6" />
-              </div>
-              <h3 className="mt-5 text-base font-bold text-slate-900">Cloudflare R2 Storage</h3>
-              <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Documents are securely stored on Cloudflare R2 object storage with fast S3-compatible edge distribution.
-              </p>
-            </div>
-
-            <div className="group relative rounded-3xl border border-slate-200/80 bg-slate-50/50 p-6 transition hover:border-emerald-500/50 hover:bg-white hover:shadow-xl hover:shadow-emerald-500/5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-500/20 group-hover:scale-110 transition">
-                <Layers className="h-6 w-6" />
-              </div>
-              <h3 className="mt-5 text-base font-bold text-slate-900">Multi-Document History</h3>
-              <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Manage up to 5 documents per account. Each PDF retains its isolated conversation thread and indexed vectors.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Workflow */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="text-center max-w-2xl mx-auto">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-blue-600">Simplicity First</h2>
-          <p className="mt-2 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            How It Works in 3 Easy Steps
+    <div className="flex flex-col">
+      {/* Hero */}
+      <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-14 px-5 pt-16 pb-24 sm:px-8 md:pt-24 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-accent">
+            A reading companion for PDFs
           </p>
-        </div>
 
-        <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="relative flex flex-col items-center text-center p-6 rounded-3xl bg-white border border-slate-200 shadow-sm">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-700 font-bold text-lg mb-4">
-              1
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">Upload Your PDF</h3>
-            <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Drag and drop any report, paper, or handbook into the secure cloud uploader.
-            </p>
-          </div>
+          <h1 className="mt-6 font-serif text-6xl leading-[0.95] tracking-tight sm:text-7xl lg:text-8xl">
+            Read less.
+            <br />
+            <span className="italic">Know</span> more.
+          </h1>
 
-          <div className="relative flex flex-col items-center text-center p-6 rounded-3xl bg-white border border-slate-200 shadow-sm">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-bold text-lg mb-4">
-              2
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">Asynchronous Indexing</h3>
-            <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Background workers chunk the text, compute vector embeddings, and update document status.
-            </p>
-          </div>
-
-          <div className="relative flex flex-col items-center text-center p-6 rounded-3xl bg-white border border-slate-200 shadow-sm">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-100 text-violet-700 font-bold text-lg mb-4">
-              3
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">Ask & Discover</h3>
-            <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Ask questions in plain English and receive instant, source-backed answers with page numbers.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 p-8 sm:p-14 text-center text-white shadow-2xl shadow-blue-500/20">
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            Ready to experience intelligent document chat?
-          </h2>
-          <p className="mt-4 text-blue-100 max-w-xl mx-auto text-sm sm:text-base">
-            Create an account in seconds and upload your first PDF for free.
+          <p className="mt-8 max-w-md text-base leading-relaxed text-muted sm:text-lg">
+            Ask questions of any PDF and get clear answers, each one annotated
+            with the pages it came from.
           </p>
-          <div className="mt-8 flex justify-center">
+
+          <div className="mt-10 flex flex-wrap items-center gap-6">
             <SignUpButton mode="modal">
-              <button className="cursor-pointer inline-flex items-center gap-2 rounded-2xl bg-white px-8 py-4 text-sm sm:text-base font-bold text-blue-700 shadow-lg transition hover:bg-slate-100 hover:scale-[1.02] active:scale-[0.98]">
-                <Sparkles className="h-4 w-4 text-blue-600" />
-                <span>Start Chatting for Free</span>
+              <button className="cursor-pointer rounded-full bg-ink px-6 py-3 text-sm text-paper transition hover:bg-accent">
+                Open your first PDF →
               </button>
             </SignUpButton>
+
+            <SignInButton mode="modal">
+              <button className="cursor-pointer text-sm text-ink underline decoration-rule underline-offset-4 transition hover:decoration-accent">
+                I already have an account
+              </button>
+            </SignInButton>
+          </div>
+        </div>
+
+        {/* Specimen: a page with a margin note */}
+        <div className="relative mx-auto w-full max-w-md lg:max-w-none">
+          <div className="relative rotate-[-1.5deg] border border-rule bg-[#fbf9f4] p-7 sm:p-9">
+            <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
+              <span>annual_report.pdf</span>
+              <span>p. 4</span>
+            </div>
+
+            <div className="mt-6 space-y-2.5 text-[13px] leading-relaxed text-ink/70">
+              <div className="h-2 w-11/12 rounded-full bg-rule/70" />
+              <div className="h-2 w-full rounded-full bg-rule/70" />
+              <div className="h-2 w-4/5 rounded-full bg-rule/70" />
+              <p className="pt-1 text-ink">
+                <span className="highlight-sweep">
+                  Net revenue for the third quarter reached $48.2M, up 24% year
+                  over year,
+                </span>{" "}
+                driven by enterprise subscriptions.
+              </p>
+              <div className="h-2 w-full rounded-full bg-rule/70" />
+              <div className="h-2 w-3/4 rounded-full bg-rule/70" />
+              <div className="h-2 w-5/6 rounded-full bg-rule/70" />
+            </div>
+          </div>
+
+          <div className="relative -mt-6 ml-auto w-[85%] rotate-[1deg] border-l-2 border-accent bg-paper py-4 pl-5 pr-4 sm:-mr-6">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
+              You asked
+            </p>
+            <p className="mt-1 font-serif text-xl italic leading-snug">
+              How much did revenue grow in Q3?
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-ink/80">
+              Revenue grew 24% year over year to $48.2M, mainly from
+              enterprise subscriptions.
+            </p>
+            <p className="mt-3 font-mono text-[11px] text-accent">↳ p. 4</p>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="mt-auto border-t border-slate-200 bg-white py-8 px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-xs">
-              <FileText className="h-3.5 w-3.5" />
-            </div>
-            <span className="font-semibold text-slate-800">Docsy AI RAG</span>
-            <span>&copy; {new Date().getFullYear()} All rights reserved.</span>
+      {/* Method */}
+      <section className="border-t border-rule">
+        <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-serif text-4xl italic sm:text-5xl">Method</h2>
+            <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted">
+              three steps
+            </span>
           </div>
-          <p className="text-slate-400">
-            Powered by Google Gemini 2.0, Qdrant Vector Engine & Cloudflare R2
-          </p>
+
+          <ol className="mt-12 divide-y divide-rule border-y border-rule">
+            {STEPS.map((step, i) => (
+              <li
+                key={step.title}
+                className="group grid grid-cols-[3rem_1fr] gap-4 py-7 sm:grid-cols-[5rem_12rem_1fr] sm:items-baseline"
+              >
+                <span className="font-mono text-sm text-muted transition group-hover:text-accent">
+                  0{i + 1}
+                </span>
+                <h3 className="font-serif text-3xl">{step.title}</h3>
+                <p className="col-start-2 max-w-lg text-sm leading-relaxed text-muted sm:col-start-3">
+                  {step.body}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Notes */}
+      <section className="border-t border-rule bg-paper-deep/50">
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-x-16 gap-y-10 px-5 py-20 sm:grid-cols-2 sm:px-8">
+          {NOTES.map(([title, body]) => (
+            <div key={title} className="border-l border-rule pl-5">
+              <h3 className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
+                {title}
+              </h3>
+              <p className="mt-3 font-serif text-2xl leading-snug">{body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Closing */}
+      <section className="border-t border-rule">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-8 px-5 py-24 sm:px-8 md:flex-row md:items-end md:justify-between">
+          <h2 className="max-w-xl font-serif text-5xl leading-[1.05] sm:text-6xl">
+            Your next long read,
+            <br />
+            <span className="italic text-accent">already annotated.</span>
+          </h2>
+
+          <SignUpButton mode="modal">
+            <button className="cursor-pointer rounded-full bg-ink px-6 py-3 text-sm text-paper transition hover:bg-accent">
+              Start free →
+            </button>
+          </SignUpButton>
+        </div>
+      </section>
+
+      <footer className="border-t border-rule">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-5 py-6 font-mono text-[11px] text-muted sm:flex-row sm:justify-between sm:px-8">
+          <span>© {new Date().getFullYear()} Docsy</span>
+          <span>Claude · Qdrant · Cloudflare R2</span>
         </div>
       </footer>
     </div>
   );
 }
-

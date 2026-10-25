@@ -8,6 +8,7 @@ const REQUIRED_ENV = [
   'CLERK_SECRET_KEY',
   'CLERK_PUBLISHABLE_KEY',
   'GOOGLE_API_KEY',
+  'ANTHROPIC_API_KEY',
   'QDRANT_URL',
 ];
 const missingEnv = REQUIRED_ENV.filter((key) => !env[key]);

@@ -2,25 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 
-import {
-  Bot,
-  Check,
-  Copy,
-  FileText,
-  Send,
-  User,
-  FileSearch,
-  Trash2,
-  Plus,
-  Loader2,
-  Search,
-  Sparkles,
-  X,
-  ChevronRight,
-} from "lucide-react";
+import { ArrowUp, Check, Copy, Loader2, Menu, Plus, Trash2, X } from "lucide-react";
 
 import axios from "axios";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import FileUpload from "./fileUpload";
 
 type MessageRole = "user" | "assistant";
@@ -64,7 +49,6 @@ const PROMPT_SUGGESTIONS = [
 
 export default function AIChat() {
   const { getToken, userId } = useAuth();
-  const { user } = useUser();
 
   /*
    * ---------------------------------------------------------
@@ -102,6 +86,9 @@ export default function AIChat() {
   // Upload modal
   const [showUploadModal, setShowUploadModal] =
     useState(false);
+
+  // Mobile sidebar
+  const [showSidebar, setShowSidebar] = useState(false);
 
   // Delete
   const [deletingDocId, setDeletingDocId] =
@@ -612,18 +599,11 @@ export default function AIChat() {
         )
     );
 
-  /*
-   * ---------------------------------------------------------
-   * STORAGE PERCENTAGE
-   * ---------------------------------------------------------
-   */
-
-  const storagePercentage = Math.min(
-    100,
-    Math.round(
-      (docCount / docLimit) * 100
-    )
-  );
+  const chatDisabled =
+    isTyping ||
+    loadingHistory ||
+    !selectedDoc ||
+    selectedDoc.status !== "COMPLETED";
 
   /*
    * ---------------------------------------------------------
@@ -632,707 +612,380 @@ export default function AIChat() {
    */
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-slate-100">
+    <div className="relative flex h-[calc(100vh-3.5rem)] w-full overflow-hidden">
+
+      {/* Mobile backdrop */}
+      {showSidebar && (
+        <div
+          className="fixed inset-0 z-30 bg-ink/20 md:hidden"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
 
       {/* =====================================================
-          SIDEBAR
+          SIDEBAR — LIBRARY
       ===================================================== */}
 
-      <aside className="w-80 sm:w-88 shrink-0 border-r border-slate-200 bg-white flex flex-col shadow-xs">
-
-        <div className="p-4 flex flex-col flex-1 min-h-0 overflow-hidden">
+      <aside
+        className={`fixed inset-y-14 left-0 z-40 flex w-80 shrink-0 flex-col border-r border-rule bg-paper transition-transform md:static md:inset-auto md:translate-x-0 ${
+          showSidebar ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex min-h-0 flex-1 flex-col px-5 pt-6">
 
           {/* HEADER */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-
-            <div className="flex items-center gap-2">
-
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                <FileText className="h-4 w-4" />
-              </div>
-
-              <div>
-                <h2 className="font-bold text-sm text-slate-900">
-                  Your Documents
-                </h2>
-
-                <p className="text-[11px] text-slate-400">
-                  PDF Knowledge Bases
-                </p>
-              </div>
-
-            </div>
-
-            <span className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full">
-              {docCount} / {docLimit}
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-serif text-3xl italic">Library</h2>
+            <span className="font-mono text-[11px] text-muted">
+              {docCount}/{docLimit}
             </span>
-
           </div>
 
-          {/* STORAGE */}
-          <div className="mt-3 space-y-1">
-
-            <div className="flex justify-between text-[11px] text-slate-500 font-medium">
-
-              <span>
-                Cloud Storage Limit
-              </span>
-
-              <span>
-                {storagePercentage}%
-              </span>
-
-            </div>
-
-            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-
-              <div
-                className={`h-full transition-all duration-300 ${
-                  docCount >= docLimit
-                    ? "bg-rose-500"
-                    : docCount >= 3
-                    ? "bg-amber-500"
-                    : "bg-blue-600"
+          {/* SLOTS — one mark per allowed document */}
+          <div className="mt-3 flex gap-1" title={`${docCount} of ${docLimit} documents used`}>
+            {Array.from({ length: docLimit }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-0.5 flex-1 transition-colors ${
+                  i < docCount
+                    ? docCount >= docLimit
+                      ? "bg-accent"
+                      : "bg-ink"
+                    : "bg-rule"
                 }`}
-                style={{
-                  width: `${storagePercentage}%`,
-                }}
               />
-
-            </div>
-
+            ))}
           </div>
 
-          {/* UPLOAD BUTTON */}
+          {/* UPLOAD */}
           <button
             type="button"
-            onClick={() =>
-              setShowUploadModal(true)
-            }
-            disabled={
-              docCount >= docLimit
-            }
-            className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 px-4 text-xs font-bold transition shadow-xs ${
-              docCount >= docLimit
-                ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
-                : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:shadow-md cursor-pointer active:scale-[0.99]"
-            }`}
+            onClick={() => {
+              setShowUploadModal(true);
+              setShowSidebar(false);
+            }}
+            disabled={docCount >= docLimit}
+            className="mt-6 flex w-full items-center justify-between border border-dashed border-rule px-4 py-3 text-sm transition enabled:cursor-pointer enabled:hover:border-ink disabled:cursor-not-allowed disabled:text-muted"
           >
-            <Plus size={16} />
-
             <span>
               {docCount >= docLimit
-                ? "Storage Limit Reached (5/5)"
-                : "Upload New PDF"}
+                ? "Library full — delete one to add"
+                : "Add a PDF"}
             </span>
+            <Plus size={15} className="text-muted" />
           </button>
 
           {/* SEARCH */}
           {documents.length > 0 && (
-            <div className="relative mt-3">
-
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) =>
-                  setSearchQuery(
-                    e.target.value
-                  )
-                }
-                placeholder="Search documents..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-8 pr-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition"
-              />
-
-            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter…"
+              className="mt-4 w-full border-b border-rule bg-transparent py-2 text-sm placeholder:text-muted focus:border-ink focus:outline-none"
+            />
           )}
 
           {/* DOCUMENT LIST */}
-          <div className="mt-3 flex-1 min-h-0 overflow-y-auto">
+          <div className="mt-2 min-h-0 flex-1 overflow-y-auto pb-6">
 
-            {/* INITIAL LOADING */}
             {loadingDocuments ? (
 
-              <div className="h-full min-h-[220px] flex flex-col items-center justify-center">
-
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50">
-                  <Loader2
-                    className="h-5 w-5 animate-spin text-blue-600"
-                  />
-                </div>
-
-                <p className="mt-3 text-xs font-semibold text-slate-600">
-                  Loading documents...
-                </p>
-
-                <p className="mt-1 text-[10px] text-slate-400">
-                  Please wait a moment
-                </p>
-
-              </div>
+              <p className="py-10 text-center font-mono text-[11px] text-muted">
+                loading<span className="animate-caret">_</span>
+              </p>
 
             ) : documentsError ? (
 
-              /* DOCUMENT ERROR */
-              <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center px-4">
-
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-500">
-                  <X size={20} />
-                </div>
-
-                <p className="mt-3 text-xs font-semibold text-slate-700">
-                  Failed to load documents
-                </p>
-
-                <p className="mt-1 text-[11px] text-slate-400 max-w-[200px]">
-                  Something went wrong while loading your PDFs.
-                </p>
-
+              <div className="py-10 text-center">
+                <p className="text-sm">Couldn’t load your library.</p>
                 <button
                   type="button"
-                  onClick={() =>
-                    fetchUserDocuments()
-                  }
-                  className="mt-4 text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
+                  onClick={() => fetchUserDocuments()}
+                  className="mt-2 cursor-pointer font-mono text-[11px] text-accent underline underline-offset-4"
                 >
-                  Try again
+                  try again
                 </button>
-
               </div>
 
             ) : documents.length === 0 ? (
 
-              /* EMPTY */
-              <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center px-4">
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 mb-3">
-                  <FileText className="h-6 w-6" />
-                </div>
-
-                <p className="text-xs font-semibold text-slate-700">
-                  No PDFs uploaded yet
-                </p>
-
-                <p className="text-[11px] text-slate-400 mt-1 max-w-[180px] leading-relaxed">
-                  Click the upload button above to add your first document.
-                </p>
-
-              </div>
+              <p className="py-10 text-center font-serif text-xl italic text-muted">
+                Nothing on the shelf yet.
+              </p>
 
             ) : filteredDocuments.length === 0 ? (
 
-              /* SEARCH EMPTY */
-              <div className="py-8 text-center">
+              <p className="py-10 text-center text-sm text-muted">
+                No match for “{searchQuery}”.
+              </p>
 
-                <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl bg-slate-100 text-slate-400">
-                  <Search size={17} />
-                </div>
+            ) : (
 
-                <p className="mt-3 text-xs font-semibold text-slate-600">
-                  No documents found
+              <ol className="divide-y divide-rule">
+                {filteredDocuments.map((doc) => {
+                  const index = documents.indexOf(doc);
+                  const isSelected = selectedDoc?.id === doc.id;
+                  const isProcessing = doc.status === "PROCESSING";
+                  const isFailed = doc.status === "FAILED";
+                  const isDeleting = deletingDocId === doc.id;
+
+                  return (
+                    <li
+                      key={doc.id}
+                      onClick={() => {
+                        if (!isDeleting && !loadingHistory) {
+                          setSelectedDoc(doc);
+                          setShowSidebar(false);
+                        }
+                      }}
+                      className={`group relative flex items-start gap-3 py-3.5 pl-3 pr-1 transition ${
+                        isDeleting ? "opacity-50" : "cursor-pointer"
+                      }`}
+                    >
+                      {/* selected marker */}
+                      <span
+                        className={`absolute left-0 top-3.5 bottom-3.5 w-0.5 transition ${
+                          isSelected ? "bg-accent" : "bg-transparent group-hover:bg-rule"
+                        }`}
+                      />
+
+                      <span
+                        className={`pt-0.5 font-mono text-[11px] ${
+                          isSelected ? "text-accent" : "text-muted"
+                        }`}
+                      >
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={`truncate text-sm ${
+                            isSelected ? "text-ink" : "text-ink/75"
+                          }`}
+                          title={doc.originalName}
+                        >
+                          {doc.originalName}
+                        </p>
+
+                        <p className="mt-1 font-mono text-[10px] text-muted">
+                          {isProcessing ? (
+                            <span className="text-accent">
+                              indexing<span className="animate-caret">_</span>
+                            </span>
+                          ) : isFailed ? (
+                            <span className="text-accent">failed</span>
+                          ) : (
+                            <span>{doc.pageCount || 0} pp</span>
+                          )}
+                          <span className="mx-1.5">·</span>
+                          {new Date(doc.createdAt).toLocaleDateString(undefined, {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={isDeleting}
+                        onClick={(e) => handleDeleteDocument(doc.id, e)}
+                        className="shrink-0 cursor-pointer p-1 text-muted opacity-0 transition hover:text-accent focus:opacity-100 group-hover:opacity-100 disabled:cursor-not-allowed max-md:opacity-100"
+                        title="Delete document"
+                      >
+                        {isDeleting ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={13} />
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* =====================================================
+          MAIN — READING ROOM
+      ===================================================== */}
+
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+
+        {/* HEADER */}
+        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-rule px-5 sm:px-8">
+          <button
+            type="button"
+            onClick={() => setShowSidebar(true)}
+            className="cursor-pointer text-muted hover:text-ink md:hidden"
+            aria-label="Open library"
+          >
+            <Menu size={18} />
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-serif text-2xl leading-tight">
+              {selectedDoc ? selectedDoc.originalName : "No document open"}
+            </h1>
+          </div>
+
+          {selectedDoc && (
+            <span
+              className={`shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] ${
+                selectedDoc.status === "COMPLETED" ? "text-muted" : "text-accent"
+              }`}
+            >
+              {selectedDoc.status === "COMPLETED"
+                ? `${selectedDoc.pageCount || 0} pages · ready`
+                : selectedDoc.status === "PROCESSING"
+                ? "indexing…"
+                : "failed"}
+            </span>
+          )}
+        </header>
+
+        {/* MESSAGES */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-2xl px-5 py-10 sm:px-8">
+
+            {loadingHistory ? (
+
+              <p className="py-24 text-center font-mono text-[11px] text-muted">
+                opening conversation<span className="animate-caret">_</span>
+              </p>
+
+            ) : historyError ? (
+
+              <div className="py-24 text-center">
+                <p className="font-serif text-2xl italic">
+                  The conversation wouldn’t open.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => selectedDoc && fetchChatHistory(selectedDoc.id)}
+                  className="mt-3 cursor-pointer font-mono text-[11px] text-accent underline underline-offset-4"
+                >
+                  try again
+                </button>
+              </div>
 
-                <p className="mt-1 text-[11px] text-slate-400">
-                  No documents match "{searchQuery}".
+            ) : !selectedDoc ? (
+
+              <div className="py-20">
+                <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-accent">
+                  Begin here
                 </p>
+                <h3 className="mt-4 font-serif text-5xl leading-[1.05]">
+                  Open a PDF and
+                  <br />
+                  <span className="italic">ask it anything.</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(true)}
+                  className="mt-10 cursor-pointer rounded-full bg-ink px-6 py-3 text-sm text-paper transition hover:bg-accent"
+                >
+                  Add a PDF →
+                </button>
+              </div>
 
+            ) : messages.length === 0 ? (
+
+              <div className="py-12">
+                <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-accent">
+                  {selectedDoc.status === "COMPLETED"
+                    ? "Ready when you are"
+                    : "Still reading this one"}
+                </p>
+                <h3 className="mt-4 font-serif text-4xl leading-tight sm:text-5xl">
+                  What would you like to
+                  <span className="italic"> know?</span>
+                </h3>
+
+                <ol className="mt-10 divide-y divide-rule border-y border-rule">
+                  {PROMPT_SUGGESTIONS.map((suggestion, idx) => (
+                    <li key={idx}>
+                      <button
+                        type="button"
+                        disabled={isTyping || selectedDoc.status !== "COMPLETED"}
+                        onClick={() => handleSendMessage(suggestion)}
+                        className="group flex w-full cursor-pointer items-baseline gap-4 py-4 text-left transition disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <span className="font-mono text-[11px] text-muted group-enabled:group-hover:text-accent">
+                          0{idx + 1}
+                        </span>
+                        <span className="flex-1 text-sm group-enabled:group-hover:text-accent">
+                          {suggestion}
+                        </span>
+                        <span className="text-muted opacity-0 transition group-enabled:group-hover:opacity-100">
+                          →
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
               </div>
 
             ) : (
 
-              /* DOCUMENTS */
-              <div className="space-y-2">
-
-                {filteredDocuments.map(
-                  (doc) => {
-
-                    const isSelected =
-                      selectedDoc?.id ===
-                      doc.id;
-
-                    const isProcessing =
-                      doc.status ===
-                      "PROCESSING";
-
-                    const isFailed =
-                      doc.status ===
-                      "FAILED";
-
-                    const isDeleting =
-                      deletingDocId ===
-                      doc.id;
-
-                    return (
-                      <div
-                        key={doc.id}
-                        onClick={() => {
-                          if (
-                            !isDeleting &&
-                            !loadingHistory
-                          ) {
-                            setSelectedDoc(
-                              doc
-                            );
-                          }
-                        }}
-                        className={`group relative flex items-center justify-between rounded-xl p-3 text-xs border transition-all duration-200 ${
-                          isDeleting
-                            ? "opacity-60"
-                            : "cursor-pointer"
-                        } ${
-                          isSelected
-                            ? "border-blue-500 bg-blue-50/70 shadow-sm ring-1 ring-blue-500/20 text-slate-900"
-                            : "border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50/70 hover:shadow-sm text-slate-700"
-                        }`}
-                      >
-
-                        {/* DOCUMENT INFO */}
-                        <div className="flex items-center gap-3 min-w-0 pr-2">
-
-                          <div
-                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition ${
-                              isSelected
-                                ? "bg-blue-600 text-white"
-                                : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
-                            }`}
-                          >
-                            <FileText
-                              size={17}
-                            />
-                          </div>
-
-                          <div className="min-w-0">
-
-                            <p
-                              className={`truncate text-xs leading-tight ${
-                                isSelected
-                                  ? "font-semibold text-slate-900"
-                                  : "font-medium text-slate-700"
-                              }`}
-                              title={
-                                doc.originalName
-                              }
-                            >
-                              {
-                                doc.originalName
-                              }
-                            </p>
-
-                            <div className="mt-1.5 flex items-center gap-2 text-[10px]">
-
-                              {isProcessing ? (
-
-                                <span className="flex items-center gap-1 text-amber-600 font-medium">
-                                  <Loader2
-                                    size={10}
-                                    className="animate-spin"
-                                  />
-                                  Processing
-                                </span>
-
-                              ) : isFailed ? (
-
-                                <span className="flex items-center gap-1 text-rose-600 font-medium">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                                  Failed
-                                </span>
-
-                              ) : (
-
-                                <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                  Ready
-                                </span>
-
-                              )}
-
-                              <span className="text-slate-300">
-                                •
-                              </span>
-
-                              <span className="text-slate-400">
-                                {new Date(
-                                  doc.createdAt
-                                ).toLocaleDateString()}
-                              </span>
-
-                            </div>
-
-                          </div>
-
-                        </div>
-
-                        {/* DELETE */}
-                        <button
-                          type="button"
-                          disabled={
-                            isDeleting
-                          }
-                          onClick={(e) =>
-                            handleDeleteDocument(
-                              doc.id,
-                              e
-                            )
-                          }
-                          className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer text-slate-400 hover:text-rose-600 transition p-1.5 rounded-lg hover:bg-rose-50 disabled:cursor-not-allowed"
-                          title="Delete document"
-                        >
-
-                          {isDeleting ? (
-                            <Loader2
-                              size={14}
-                              className="animate-spin text-rose-600"
-                            />
-                          ) : (
-                            <Trash2
-                              size={14}
-                            />
-                          )}
-
-                        </button>
-
-                      </div>
-                    );
-                  }
-                )}
-
+              <div className="space-y-12">
+                {messages.map((message) => (
+                  <MessageItem
+                    key={message.id}
+                    message={message}
+                    onCopy={handleCopy}
+                    copiedMessageId={copiedMessageId}
+                  />
+                ))}
               </div>
+
             )}
 
+            {isTyping && <TypingIndicator />}
+
+            <div ref={messagesEndRef} />
           </div>
         </div>
 
-        {/* USER CARD */}
-        {user && (
-          <div className="border-t border-slate-200 p-3.5 bg-slate-50/80 flex items-center gap-3">
-
-            <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-              {user.firstName
-                ? user.firstName[0].toUpperCase()
-                : "U"}
-            </div>
-
-            <div className="truncate text-xs min-w-0">
-
-              <p className="font-semibold text-slate-800 truncate">
-                {user.fullName ||
-                  "User"}
-              </p>
-
-              <p className="text-[11px] text-slate-400 truncate">
-                {
-                  user
-                    .primaryEmailAddress
-                    ?.emailAddress
-                }
-              </p>
-
-            </div>
-
-          </div>
-        )}
-
-      </aside>
-
-      {/* =====================================================
-          MAIN CHAT
-      ===================================================== */}
-
-      <main className="flex flex-1 flex-col bg-white overflow-hidden">
-
-        {/* HEADER */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 px-6 bg-white">
-
-          <div className="flex items-center gap-3 min-w-0">
-
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs">
-              <Bot size={20} />
-            </div>
-
-            <div className="min-w-0">
-
-              <div className="flex items-center gap-2">
-
-                <h1 className="text-sm font-bold text-slate-900 truncate">
-                  {selectedDoc
-                    ? selectedDoc.originalName
-                    : "AI Document Copilot"}
-                </h1>
-
-                {selectedDoc && (
-                  <span
-                    className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                      selectedDoc.status ===
-                      "COMPLETED"
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : selectedDoc.status ===
-                          "PROCESSING"
-                        ? "bg-amber-50 text-amber-700 border border-amber-200"
-                        : "bg-rose-50 text-rose-700 border border-rose-200"
-                    }`}
-                  >
-                    {selectedDoc.status ===
-                    "COMPLETED"
-                      ? "Ready"
-                      : selectedDoc.status}
-                  </span>
-                )}
-
-              </div>
-
-              <p className="text-[11px] text-slate-400 truncate">
-                {selectedDoc
-                  ? `Knowledge base active • ${
-                      selectedDoc.pageCount ||
-                      0
-                    } page(s)`
-                  : "Select a document from the left sidebar to start chatting"}
-              </p>
-
-            </div>
-
-          </div>
-
-        </header>
-
-        {/* =====================================================
-            MESSAGES
-        ===================================================== */}
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-6 bg-slate-50/40">
-
-          {/* HISTORY LOADING */}
-          {loadingHistory ? (
-
-            <div className="flex h-full items-center justify-center">
-
-              <div className="flex flex-col items-center">
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50">
-                  <Loader2
-                    className="h-6 w-6 animate-spin text-blue-600"
-                  />
-                </div>
-
-                <p className="mt-3 text-xs font-semibold text-slate-600">
-                  Loading conversation...
-                </p>
-
-                <p className="mt-1 text-[10px] text-slate-400">
-                  Fetching your chat history
-                </p>
-
-              </div>
-
-            </div>
-
-          ) : historyError ? (
-
-            /* HISTORY ERROR */
-            <div className="flex h-full items-center justify-center">
-
-              <div className="text-center">
-
-                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-500">
-                  <X size={20} />
-                </div>
-
-                <p className="mt-3 text-xs font-semibold text-slate-700">
-                  Failed to load conversation
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    selectedDoc &&
-                    fetchChatHistory(
-                      selectedDoc.id
-                    )
-                  }
-                  className="mt-3 text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
-                >
-                  Try again
-                </button>
-
-              </div>
-
-            </div>
-
-          ) : !selectedDoc ? (
-
-            /* NO DOCUMENT */
-            <div className="flex h-full flex-col items-center justify-center text-center p-6 max-w-md mx-auto">
-
-              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-blue-50 text-blue-600 mb-4 shadow-sm">
-                <FileText size={32} />
-              </div>
-
-              <h3 className="text-lg font-bold text-slate-900">
-                Select or Upload a PDF
-              </h3>
-
-              <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
-                Choose a document from the left sidebar or upload a new PDF to query its content with exact citations.
-              </p>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setShowUploadModal(
-                    true
-                  )
-                }
-                className="mt-6 cursor-pointer inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition"
-              >
-                <Plus size={16} />
-                Upload PDF Document
-              </button>
-
-            </div>
-
-          ) : messages.length === 0 ? (
-
-            /* EMPTY CHAT */
-            <div className="flex h-full flex-col items-center justify-center text-center p-6 max-w-xl mx-auto">
-
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white mb-4 shadow-md shadow-blue-500/20">
-                <Sparkles size={26} />
-              </div>
-
-              <h3 className="text-lg font-bold text-slate-900">
-                {selectedDoc.originalName} is Loaded!
-              </h3>
-
-              <p className="text-xs sm:text-sm text-slate-500 mt-1.5 max-w-md">
-                Ask any question about the contents of this document.
-              </p>
-
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
-
-                {PROMPT_SUGGESTIONS.map(
-                  (suggestion, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      disabled={
-                        isTyping ||
-                        selectedDoc.status !==
-                          "COMPLETED"
-                      }
-                      onClick={() =>
-                        handleSendMessage(
-                          suggestion
-                        )
-                      }
-                      className="cursor-pointer text-left p-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-700 hover:border-blue-500 hover:bg-blue-50/50 hover:text-blue-900 transition shadow-xs flex items-center justify-between group disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <span>
-                        {suggestion}
-                      </span>
-
-                      <ChevronRight
-                        size={14}
-                        className="text-slate-400 group-hover:text-blue-600 shrink-0 ml-2"
-                      />
-                    </button>
-                  )
-                )}
-
-              </div>
-
-            </div>
-
-          ) : (
-
-            /* MESSAGES */
-            messages.map((message) => (
-              <MessageItem
-                key={message.id}
-                message={message}
-                onCopy={handleCopy}
-                copiedMessageId={
-                  copiedMessageId
-                }
-              />
-            ))
-
-          )}
-
-          {/* AI TYPING */}
-          {isTyping && <TypingIndicator />}
-
-          <div ref={messagesEndRef} />
-
-        </div>
-
-        {/* =====================================================
-            INPUT
-        ===================================================== */}
-
-        <div className="border-t border-slate-200/80 bg-white px-4 sm:px-8 py-4">
-
-          <div className="relative flex items-end rounded-2xl border border-slate-300 bg-white shadow-xs focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition">
+        {/* INPUT */}
+        <div className="shrink-0 border-t border-rule">
+          <div className="mx-auto flex w-full max-w-2xl items-end gap-3 px-5 py-4 sm:px-8">
+            <span className="pb-2.5 font-mono text-sm text-accent">Q.</span>
 
             <textarea
               ref={textareaRef}
               value={input}
-              onChange={(e) =>
-                setInput(e.target.value)
-              }
+              onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={
-                selectedDoc
-                  ? `Ask a question about ${selectedDoc.originalName}... (Press Enter to send)`
-                  : "Select a document to enable chat..."
+                !selectedDoc
+                  ? "Open a document to start…"
+                  : selectedDoc.status !== "COMPLETED"
+                  ? "Still indexing this document…"
+                  : "Ask a question…"
               }
               rows={1}
-              disabled={
-                isTyping ||
-                loadingHistory ||
-                !selectedDoc ||
-                selectedDoc.status !==
-                  "COMPLETED"
-              }
-              className="max-h-36 min-h-[52px] w-full resize-none bg-transparent px-4 py-3.5 pr-14 text-xs sm:text-sm text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={chatDisabled}
+              className="max-h-36 min-h-[44px] w-full resize-none bg-transparent py-2.5 font-serif text-xl outline-none placeholder:text-muted/70 disabled:cursor-not-allowed"
             />
 
             <button
               type="button"
-              onClick={() =>
-                handleSendMessage()
-              }
-              disabled={
-                !input.trim() ||
-                isTyping ||
-                loadingHistory ||
-                !selectedDoc ||
-                selectedDoc.status !==
-                  "COMPLETED"
-              }
-              className="absolute bottom-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 cursor-pointer shadow-xs"
-              aria-label="Send query"
+              onClick={() => handleSendMessage()}
+              disabled={!input.trim() || chatDisabled}
+              className="mb-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-ink text-paper transition hover:bg-accent disabled:cursor-not-allowed disabled:bg-rule disabled:text-muted"
+              aria-label="Send question"
             >
-
               {isTyping ? (
-                <Loader2
-                  size={15}
-                  className="animate-spin"
-                />
+                <Loader2 size={15} className="animate-spin" />
               ) : (
-                <Send size={15} />
+                <ArrowUp size={16} />
               )}
-
             </button>
-
           </div>
-
-          <p className="mt-2 text-[10px] text-center text-slate-400">
-            Answers are generated strictly from the provided PDF context and verified with Qdrant vector retrieval.
-          </p>
-
         </div>
-
       </main>
 
       {/* =====================================================
@@ -1340,77 +993,40 @@ export default function AIChat() {
       ===================================================== */}
 
       {showUploadModal && (
-
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-
-          <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-200">
-
-            {/* MODAL HEADER */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-
-              <div className="flex items-center gap-2">
-
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                  <FileText size={18} />
-                </div>
-
-                <div>
-
-                  <h3 className="font-bold text-sm text-slate-900">
-                    Upload PDF Document
-                  </h3>
-
-                  <p className="text-[11px] text-slate-500">
-                    Max limit: 5 documents per account
-                  </p>
-
-                </div>
-
-              </div>
-
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4"
+          onClick={() => setShowUploadModal(false)}
+        >
+          <div
+            className="animate-rise w-full max-w-lg border border-rule bg-paper p-7"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-6 flex items-baseline justify-between">
+              <h3 className="font-serif text-3xl italic">Add to library</h3>
               <button
                 type="button"
-                onClick={() =>
-                  setShowUploadModal(
-                    false
-                  )
-                }
-                className="cursor-pointer rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                onClick={() => setShowUploadModal(false)}
+                className="cursor-pointer text-muted transition hover:text-ink"
+                aria-label="Close"
               >
                 <X size={18} />
               </button>
-
             </div>
 
-            {/* UPLOAD */}
-            <div className="mt-6">
+            <FileUpload
+              onUploadSuccess={(newDocId) => {
+                setShowUploadModal(false);
 
-              <FileUpload
-                onUploadSuccess={(
-                  newDocId
-                ) => {
-                  setShowUploadModal(
-                    false
-                  );
-
-                  /*
-                   * Fetch updated documents.
-                   * The new document is automatically selected.
-                   */
-                  fetchUserDocuments(
-                    newDocId
-                  );
-                }}
-              />
-
-            </div>
-
+                /*
+                 * Fetch updated documents.
+                 * The new document is automatically selected.
+                 */
+                fetchUserDocuments(newDocId);
+              }}
+            />
           </div>
-
         </div>
-
       )}
-
     </div>
   );
 }
@@ -1423,122 +1039,55 @@ export default function AIChat() {
 
 interface MessageItemProps {
   message: Message;
-
-  onCopy: (
-    text: string,
-    messageId: string | number
-  ) => void;
-
-  copiedMessageId:
-    | string
-    | number
-    | null;
+  onCopy: (text: string, messageId: string | number) => void;
+  copiedMessageId: string | number | null;
 }
 
-function MessageItem({
-  message,
-  onCopy,
-  copiedMessageId,
-}: MessageItemProps) {
-  const isUser =
-    message.role === "user";
+function MessageItem({ message, onCopy, copiedMessageId }: MessageItemProps) {
+  if (message.role === "user") {
+    return (
+      <div className="animate-rise flex gap-4">
+        <span className="pt-2 font-mono text-sm text-accent">Q.</span>
+        <p className="whitespace-pre-wrap font-serif text-2xl leading-snug sm:text-3xl">
+          {message.content}
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={`flex w-full gap-3 sm:gap-4 ${
-        isUser
-          ? "justify-end"
-          : "justify-start"
-      }`}
-    >
+    <div className="animate-rise flex gap-4">
+      <span className="pt-0.5 font-mono text-sm text-muted">A.</span>
 
-      {!isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xs mt-1">
-          <Bot size={17} />
-        </div>
-      )}
-
-      <div
-        className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${
-          isUser
-            ? "items-end"
-            : "items-start"
-        }`}
-      >
-
-        <div className="mb-1 text-[11px] font-semibold text-slate-400 px-1">
-          {isUser
-            ? "You"
-            : "DocuMind Copilot"}
+      <div className="min-w-0 flex-1">
+        <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink/90">
+          {message.content}
         </div>
 
-        <div
-          className={`rounded-2xl p-4 text-xs sm:text-sm leading-relaxed shadow-xs ${
-            isUser
-              ? "rounded-tr-xs bg-blue-600 text-white"
-              : "rounded-tl-xs border border-slate-200/90 bg-white text-slate-800"
-          }`}
-        >
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+          {message.sources && message.sources.length > 0 && (
+            <SourcePages sources={message.sources} />
+          )}
 
-          <div className="whitespace-pre-wrap">
-            {message.content}
-          </div>
-
-          {!isUser &&
-            message.sources &&
-            message.sources.length >
-              0 && (
-              <SourcePages
-                sources={
-                  message.sources
-                }
-              />
-            )}
-
-        </div>
-
-        {!isUser && (
           <button
             type="button"
-            onClick={() =>
-              onCopy(
-                message.content,
-                message.id
-              )
-            }
-            className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition cursor-pointer"
+            onClick={() => onCopy(message.content, message.id)}
+            className="inline-flex cursor-pointer items-center gap-1.5 font-mono text-[11px] text-muted transition hover:text-ink"
           >
-
-            {copiedMessageId ===
-            message.id ? (
+            {copiedMessageId === message.id ? (
               <>
-                <Check
-                  size={13}
-                  className="text-emerald-600"
-                />
-
-                <span className="text-emerald-600 font-medium">
-                  Copied to clipboard
-                </span>
+                <Check size={12} />
+                copied
               </>
             ) : (
               <>
-                <Copy size={13} />
-                <span>Copy</span>
+                <Copy size={12} />
+                copy
               </>
             )}
-
           </button>
-        )}
-
-      </div>
-
-      {isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-700 text-xs font-bold mt-1 shadow-xs">
-          <User size={16} />
         </div>
-      )}
-
+      </div>
     </div>
   );
 }
@@ -1549,26 +1098,12 @@ function MessageItem({
  * =========================================================
  */
 
-function SourcePages({
-  sources,
-}: {
-  sources: SourceDocument[];
-}) {
+function SourcePages({ sources }: { sources: SourceDocument[] }) {
   const pages = Array.from(
     new Set(
       sources
-        .map(
-          (source) =>
-            source.metadata?.loc
-              ?.pageNumber
-        )
-        .filter(
-          (
-            page
-          ): page is number =>
-            typeof page ===
-            "number"
-        )
+        .map((source) => source.metadata?.loc?.pageNumber)
+        .filter((page): page is number => typeof page === "number")
     )
   ).sort((a, b) => a - b);
 
@@ -1577,23 +1112,9 @@ function SourcePages({
   }
 
   return (
-    <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
-
-      <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
-        <FileSearch size={13} />
-        <span>Cited Pages:</span>
-      </div>
-
-      {pages.map((page) => (
-        <span
-          key={page}
-          className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700"
-        >
-          Page {page}
-        </span>
-      ))}
-
-    </div>
+    <span className="font-mono text-[11px] text-accent">
+      ↳ {pages.length === 1 ? "p." : "pp."} {pages.join(", ")}
+    </span>
   );
 }
 
@@ -1605,25 +1126,11 @@ function SourcePages({
 
 function TypingIndicator() {
   return (
-    <div className="flex items-start gap-3">
-
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xs mt-1">
-        <Bot size={17} />
-      </div>
-
-      <div className="flex items-center gap-2 rounded-2xl rounded-tl-xs border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 shadow-xs">
-
-        <Loader2
-          className="animate-spin text-blue-600"
-          size={15}
-        />
-
-        <span>
-          Analyzing document context and formulating response...
-        </span>
-
-      </div>
-
+    <div className="mt-12 flex gap-4">
+      <span className="pt-0.5 font-mono text-sm text-muted">A.</span>
+      <p className="font-mono text-[12px] text-muted">
+        reading the pages<span className="animate-caret">_</span>
+      </p>
     </div>
   );
 }

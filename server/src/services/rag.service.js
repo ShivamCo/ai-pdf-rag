@@ -1,42 +1,69 @@
-import {
-  getGoogleEmbeddingsClient,
-  getGoogleGenAIClient,
-} from '../config/ai.js';
+import Anthropic from '@anthropic-ai/sdk';
+import { getGoogleEmbeddingsClient, getAnthropicClient } from '../config/ai.js';
 import { getVectorStoreFromExisting } from '../config/qdrant.js';
 import { prisma } from '../config/db.js';
 import { env } from '../config/env.js';
 import { ApiError } from '../utils/apiError.js';
 
-const callGeminiWithFallback = async (prompt) => {
-  const ai = getGoogleGenAIClient();
-  const rawModel = env.GEMINI_MODEL;
-  const preferredModel =
-    rawModel && rawModel !== 'gemini-2.5-flash' ? rawModel : 'gemini-3.6-flash';
+const SYSTEM_PROMPT = `You are a helpful and knowledgeable assistant. Answer the user's question using only the information in the PDF excerpts provided inside <context> tags.
 
-  const candidateModels = Array.from(
-    new Set([preferredModel, 'gemini-3.6-flash'].filter(Boolean))
-  );
+Guidelines:
+- Give a direct answer first, then any useful explanation or supporting details.
+- Use simple, clear language and short paragraphs. Use plain hyphen bullet points when they help readability.
+- Include important facts, figures, dates, names or data from the excerpts when relevant.
+- Keep the response concise unless the question needs a detailed explanation.
+- Write plain text: no Markdown bold, no headings, no decorative symbols. The answer is displayed as plain text.
+- Do not add information that the excerpts do not support.
+- If the excerpts only partly answer the question, answer with what is available and say what is missing.
+- Only reply "I couldn't find this information in the provided document." when the excerpts contain nothing relevant to the question.`;
 
-  let lastError = null;
-  for (const model of candidateModels) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-      });
-      if (response && response.text) {
-        return response.text;
-      }
-    } catch (err) {
-      console.warn(
-        `Gemini model ${model} failed, trying fallback:`,
-        err.message || err
+const generateAnswer = async (context, question) => {
+  const client = getAnthropicClient();
+
+  let response;
+  try {
+    response = await client.messages.create({
+      model: env.CLAUDE_MODEL,
+      max_tokens: 16000,
+      output_config: { effort: 'low' },
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: `<context>\n${context}\n</context>\n\n<question>\n${question}\n</question>`,
+        },
+      ],
+    });
+  } catch (err) {
+    if (err instanceof Anthropic.RateLimitError) {
+      throw new ApiError(
+        429,
+        'The assistant is busy right now. Please try again in a moment.'
       );
-      lastError = err;
     }
+    if (err instanceof Anthropic.AuthenticationError) {
+      console.error('Claude authentication failed - check ANTHROPIC_API_KEY');
+    }
+    throw err;
   }
 
-  throw lastError || new Error('All Gemini models are currently unavailable');
+  if (response.stop_reason === 'refusal') {
+    return "I can't help with that request.";
+  }
+
+  const answer = response.content
+    .filter((block) => block.type === 'text')
+    .map((block) => block.text)
+    .join('')
+    .trim();
+
+  if (!answer) {
+    throw new Error(
+      `Claude returned no text (stop_reason: ${response.stop_reason})`
+    );
+  }
+
+  return answer;
 };
 
 export const generateRagResponse = async ({ question, documentId, userId }) => {
@@ -94,38 +121,7 @@ export const generateRagResponse = async ({ question, documentId, userId }) => {
 
   const context = contextDocs.map((doc) => doc.pageContent).join('\n\n');
 
-  const prompt = `
-  
-  You are a helpful and knowledgeable AI assistant. Answer the user's question using only the information available in the provided PDF context.
-
-PDF Context:
-
-${context}
-
-User Question:
-
-${question}
-
-Instructions:
-
-* Answer accurately based on the provided PDF context.
-* Use simple, clear, and easy-to-understand language.
-* Give a direct answer first, then provide any useful explanation or supporting details.
-* Include important facts, figures, dates, names, or data mentioned in the document when relevant.
-* Keep the response concise unless the question requires a detailed explanation.
-* Use short paragraphs and bullet points when they improve readability.
-* Do not use Markdown bold formatting.
-* Do not use double asterisks (**) around words or sentences.
-* Avoid excessive headings, symbols, decorative formatting, or unnecessary Markdown.
-* Do not repeat the same information.
-* Do not add information that is not supported by the provided PDF context.
-* If the context contains partial information, answer using the available information and clearly mention what is missing.
-* Only say "I couldn't find this information in the provided document." when the PDF context contains no relevant information for the question.
-
-  
-  `;
-
-  const answerText = await callGeminiWithFallback(prompt);
+  const answerText = await generateAnswer(context, question.trim());
 
   if (documentId && userId) {
     try {
